@@ -1,0 +1,40 @@
+# this repo
+
+# vim
+.*.swp
+vim-session
+
+# backup files
+*~
+*.bak
+
+# object
+*.o
+*.h.gch
+
+# generated
+cscope.out
+gmon.out
+*.gcda
+*.gcno
+*.gcov
+
+*lex.yy.c
+*yy.tab.c
+*yy.tab.h
+
+# compressed
+*.tar*
+*.zip
+
+# log, db and history
+*.log
+*history
+*cache.db
+*cache
+*.db
+
+# pics or it didn't happen. want .svg though
+*.png
+*.jpg
+
