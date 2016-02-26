@@ -27,38 +27,38 @@ static char tokenchars[] =
 // aspects: tokens, messages, functions and their attributes
 typedef enum token_e {
              //   char   n    minsize    comment
-     NUM_E,  //    0     0     0       number, could signify normal, default
+     NUM,  //    0     0     0       number, could signify normal, default
 //  ------------------------------     binops, they use H_NUMS
-     MUL_E,  //    *     1     2
-     ADD_E,  //    +     2     2
-    POWE_E,  //    ^     3     2
-    DIVI_E,  //    /     4     2       msg DBYZ_E
-     SUB_E,  //    -     5     2
-    ROOT_E,  //    v     6     2       a^(1/b) radical. msg
+     MUL,  //    *     1     2
+     ADD,  //    +     2     2
+    POWE,  //    ^     3     2
+    DIVI,  //    /     4     2       msg DBYZ
+     SUB,  //    -     5     2
+    ROOT,  //    v     6     2       a^(1/b) radical. msg
 
-     NEG_E,  //    ~     7     1       msgs, no H_NUMS
-    INVE_E,  //    i     8     1       msg DBYZ_E
-    COPY_E,  //    c     9     1
-    DISC_E,  //    d    10     1       uses H_NUMS
-    SWAP_E,  //    s    11     2
-    ROLD_E,  //    r    12     2
-    ROLU_E,  //    u    13     2
+     NEG,  //    ~     7     1       msgs, no H_NUMS
+    INVE,  //    i     8     1       msg DBYZ
+    COPY,  //    c     9     1
+    DISC,  //    d    10     1       uses H_NUMS
+    SWAP,  //    s    11     2
+    ROLD,  //    r    12     2
+    ROLU,  //    u    13     2
 //  ------------------------------     not in history
-    UNDO_E,  //    _    14             undo_score. C-_ is emacs undo
+    UNDO,  //    _    14     0       undo_score. C-_ is emacs undo
 
-    HTOG_E,  //    t    15             toggle history
-    QUIT_E,  //    q    16
-    HELP_E,  //    h    17
-    RANG_E,  //    n    18             numberrange, not r
+    HTOG,  //    t    15     0       toggle history
+    QUIT,  //    q    16     0
+    HELP,  //    h    17     0
+    RANG,  //    n    18     0       numberrange, not r
 //  ------------------------------
-    JUNK_E,  //         19             token limit, possible defaultval, ignore
-    DBYZ_E,  //         20             msg Division by zero
-    OFLW_E,  //         21             msg Overflow
-    UFLW_E,  //         22             msg Underflow
-     NAN_E,  //         23             msg Invalid
-    SMAL_E,  //         24             msg Stack too small
-    SMLU_E,  //         25             msg No history to undo. stack too small
-     NIL_E,  //         26             ok, no msg, no error. limit
+    JUNK,  //         19             token limit, possible defaultval, ignore
+    DBYZ,  //         20             msg Division by zero
+    OFLW,  //         21             msg Overflow
+    UFLW,  //         22             msg Underflow
+    INAN,  //         23             msg Invalid
+    SMAL,  //         24             msg Stack too small
+    SMLU,  //         25             msg No history to undo. stack too small
+     NIL,  //         26             ok, no msg, no error. limit
 } token_t;
 
 // mainly names of the functions, but non-functions are here too
@@ -100,20 +100,20 @@ static char *token_names[] = {
 };
 
 
-extern RPN_T bop_mul(RPN_T x, RPN_T y);
-extern RPN_T bop_add(RPN_T x, RPN_T y);
-extern RPN_T bop_pow(RPN_T x, RPN_T y); // pow taken
-extern RPN_T bop_div(RPN_T x, RPN_T y); // div taken
-extern RPN_T bop_sub(RPN_T x, RPN_T y);
-extern RPN_T bop_root(RPN_T x, RPN_T y);
+extern RPN_T  mul(RPN_T x, RPN_T y);
+extern RPN_T  add(RPN_T x, RPN_T y);
+extern RPN_T powe(RPN_T x, RPN_T y); // pow was taken
+extern RPN_T divi(RPN_T x, RPN_T y); // div was taken
+extern RPN_T  sub(RPN_T x, RPN_T y);
+extern RPN_T root(RPN_T x, RPN_T y);
 
 static RPN_T (*binops[])(RPN_T, RPN_T) = {
-    bop_mul,    // 0
-    bop_add,    // 1
-    bop_pow,    // 2
-    bop_div,    // 3
-    bop_sub,    // 4
-    bop_root,   // 5
+    mul,    // 0
+    add,    // 1
+    powe,   // 2
+    divi,   // 3
+    sub,    // 4
+    root,   // 5
 };
 
 extern void  neg(stack_t *stk);
@@ -129,12 +129,12 @@ static struct {
     token_t id;
     void (*nonhist)(stack_t*);
 } nonhists[] = {
-    { NEG_E,  neg},   //   ~
-    {INVE_E, inve},   //   i
-    {COPY_E, copy},   //   c
-    {SWAP_E, swap},   //   s
-    {ROLD_E, rold},   //   r
-    {ROLU_E, rolu},   //   u
+    { NEG,  neg},   //   ~
+    {INVE, inve},   //   i
+    {COPY, copy},   //   c
+    {SWAP, swap},   //   s
+    {ROLD, rold},   //   r
+    {ROLU, rolu},   //   u
 };
 
 // minimal sizes for the stack for allowing commands
@@ -165,17 +165,17 @@ static const size_t minsizes[] = {
 
 
 // opposite cmds to undo nonhists. no binops here
-// {COPY_E, DISC_E} not used atm, handled like NUM_E
+// {COPY, DISC} not used atm, handled like NUM
 static struct cmd_coord {
     token_t fwd;
     token_t rev;
 } opposites[] = {
-    {NEG_E , NEG_E },
-    {INVE_E, INVE_E},
-    {COPY_E, DISC_E}, // leads out of the set. not closed
-    {SWAP_E, SWAP_E},
-    {ROLD_E, ROLU_E},
-    {ROLU_E, ROLD_E},
+    {NEG , NEG },
+    {INVE, INVE},
+    {COPY, DISC}, // leads out of the set. not closed
+    {SWAP, SWAP},
+    {ROLD, ROLU},
+    {ROLU, ROLD},
 };
 
 
@@ -216,7 +216,7 @@ static const char *messages[] = {
     "No history to undo",       // 19
 };
 
-static token_t last_msg = NIL_E; // not math errors
+static token_t last_msg = NIL; // not math errors
 static int hist_flag = 0;
 
 static char *hist_sep =
@@ -228,8 +228,8 @@ static char *rpn_prompt = "#> ";
 extern void printmsg(token_t msgcode);
 extern void display(size_t display_len, stack_t *stks[]);
 
-// named indices for the stacks array
-// could combine, but separate stacks for cmds and nums is clearer
+// indices for the rpn_stacks array
+// interactive stack, history nums, history cmds
 enum {I_STK, H_NUMS, H_CMDS};
 
 extern int handle_input(char *inputbuf, stack_t *stks[]);

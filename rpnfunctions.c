@@ -81,8 +81,6 @@ long double logl(long double x);
 
 
 printmsg() can be spammy, have a toggle for it?
-there's a wrapper around it and a global to avoid repetition
-want math errors repeated, because the causing funs also change the stack
 
 is_zero(). what can a long double zero look like? would be obviated by flex
 (not very important. false positives don't matter much here)
@@ -132,38 +130,38 @@ not all branches in the program are reachable
 // easy to return 0, comment out, or add entries
 int has_msg(token_t tok) {
     switch (tok) { // returns. no fallthroughs
-        case ROOT_E: return 1;
-        case  NEG_E: return 1;
-        case INVE_E: return 1;
-        case COPY_E: return 1;
-        case DISC_E: return 1;
-        case SWAP_E: return 1;
-        case ROLD_E: return 1;
-        case ROLU_E: return 1;
-        case UNDO_E: return 1;
-        case HTOG_E: return 1;
-        case QUIT_E: return 1;
-        case HELP_E: return 1;
-        case RANG_E: return 1;
-        // case JUNK_E: return 0; // like so
-        case DBYZ_E: return 1;
-        case OFLW_E: return 1;
-        case UFLW_E: return 1;
-        case  NAN_E: return 1;
-        case SMAL_E: return 1;
-        case SMLU_E: return 1;
+        case ROOT: return 1;
+        case  NEG: return 1;
+        case INVE: return 1;
+        case COPY: return 1;
+        case DISC: return 1;
+        case SWAP: return 1;
+        case ROLD: return 1;
+        case ROLU: return 1;
+        case UNDO: return 1;
+        case HTOG: return 1;
+        case QUIT: return 1;
+        case HELP: return 1;
+        case RANG: return 1;
+        // case JUNK: return 0; // like so
+        case DBYZ: return 1;
+        case OFLW: return 1;
+        case UFLW: return 1;
+        case INAN: return 1;
+        case SMAL: return 1;
+        case SMLU: return 1;
         default:
             return 0;
     }
 }
 
-// checking has_msg twice, could check for not NIL_E (from math_err)
+// checking has_msg twice, could check for not NIL (from math_err)
 void printmsg(token_t msgcode) {
     if (!has_msg(msgcode)) { return; }
-    if (msgcode < JUNK_E) { // < strlen(tokenchars)
+    if (msgcode < JUNK) { // < strlen(tokenchars)
         printf("%c ", tokenchars[msgcode]);
     }
-    printf("%s\n", messages[msgcode - ROOT_E]);
+    printf("%s\n", messages[msgcode - ROOT]);
 }
 
 // wrapper guarantees freshness. return if seal is broken
@@ -252,42 +250,41 @@ void display(size_t display_len, stack_t *stks[]) {
 // have the typesig RPN_T fn(RPN_T, RPN_T)
 int is_binop(token_t cmd) {
     switch (cmd) {
-        case  MUL_E: return 1;
-        case  ADD_E: return 1;
-        case POWE_E: return 1;
-        case DIVI_E: return 1;
-        case  SUB_E: return 1;
-        case ROOT_E: return 1;
+        case  MUL: return 1;
+        case  ADD: return 1;
+        case POWE: return 1;
+        case DIVI: return 1;
+        case  SUB: return 1;
+        case ROOT: return 1;
         default:
             return 0;
     }
 }
 
-
 // binary operations
 // with long doubles: can return and use inf and nan
-RPN_T bop_mul(RPN_T x, RPN_T y) {
+RPN_T mul(RPN_T x, RPN_T y) {
     return x * y;
 }
-RPN_T bop_add(RPN_T x, RPN_T y) {
+RPN_T add(RPN_T x, RPN_T y) {
     return x + y;
 }
 // can handle floating point division with 0.0 or 0.0L. returns inf
-RPN_T bop_div(RPN_T x, RPN_T y) {
+RPN_T divi(RPN_T x, RPN_T y) {
     return x / y;
 }
 // sub is the binary operation subtract, not neg() ~
-RPN_T bop_sub(RPN_T x, RPN_T y) {
+RPN_T sub(RPN_T x, RPN_T y) {
     return x - y;
 }
 
-RPN_T bop_pow(RPN_T x, RPN_T y) {
+RPN_T powe(RPN_T x, RPN_T y) {
     return powl(x, y);
 }
 
 // root, radical anti-power x^(1/y)
 // a "2 v" input means square root
-RPN_T bop_root(RPN_T x, RPN_T y) {
+RPN_T root(RPN_T x, RPN_T y) {
     return powl(x, RPN_ONE / y); // 1.0L
 }
 
@@ -297,12 +294,12 @@ RPN_T bop_root(RPN_T x, RPN_T y) {
 // ~ i c s r u, no d discard
 int is_nonhist(token_t cmd) {
     switch (cmd) {
-        case  NEG_E: return 1;
-        case INVE_E: return 1;
-        case COPY_E: return 1;
-        case SWAP_E: return 1;
-        case ROLD_E: return 1;
-        case ROLU_E: return 1;
+        case  NEG: return 1;
+        case INVE: return 1;
+        case COPY: return 1;
+        case SWAP: return 1;
+        case ROLD: return 1;
+        case ROLU: return 1;
         default:
             return 0;
     }
@@ -330,7 +327,7 @@ void copy(stack_t *stk) {
     stack_push(&tmp, stk);
 }
 
-// no discard() for DISC_E
+// no discard() for DISC
 
 void swap(stack_t *stk) {
     RPN_T topnum;
@@ -400,7 +397,7 @@ token_t opposite(token_t cmd) {
         }
         i++;
     }
-    return JUNK_E; // return to reassure the compiler
+    return JUNK; // return to reassure the compiler
 }
 
 
@@ -408,14 +405,14 @@ token_t opposite(token_t cmd) {
 // could print what cmd is undone
 void undo(stack_t *stks[]) {
     if (stack_empty(stks[H_CMDS])) {
-        printmsg_fresh(SMLU_E);
+        printmsg_fresh(SMLU);
         return;
     } // don't msg until we actually undo
-    printmsg_fresh(UNDO_E);
+    printmsg_fresh(UNDO);
     token_t cmd;
     RPN_T tmp;
     stack_pop(&cmd, stks[H_CMDS]);
-    if (cmd == NUM_E || cmd == COPY_E) { // test copy() before other nonhists
+    if (cmd == NUM || cmd == COPY) { // test copy() before other nonhists
         stack_pop(&tmp, stks[I_STK]);
     } else if (is_binop(cmd)) { //  * + ^ / - v
         RPN_T topnum;
@@ -425,17 +422,17 @@ void undo(stack_t *stks[]) {
         stack_pop(&nextnum,  stks[H_NUMS]);
         stack_push(&topnum,  stks[I_STK ]);
         stack_push(&nextnum, stks[I_STK ]);
-    } else if (cmd == DISC_E) {
+    } else if (cmd == DISC) {
         stack_pop(&tmp, stks[H_NUMS]);
         stack_push(&tmp, stks[I_STK]);
-    } else if (is_nonhist(cmd) && cmd != COPY_E) {
+    } else if (is_nonhist(cmd) && cmd != COPY) {
             call_nonhist(opposite(cmd), stks[I_STK]);
     }
 }
 
 // H_NUMS will have pairwise reverse nums compared to I_STK
-// cmd to [index] 1..6 ---> 0..5 just subtracting MUL_E which is 1
-// NUM_E is 0 and before the binops in token enums
+// cmd to [index] 1..6 ---> 0..5 just subtracting MUL which is 1
+// NUM is 0 and before the binops in token enums
 void call_binop(token_t cmd, stack_t *stks[]) {
     RPN_T topnum;
     RPN_T nextnum;
@@ -444,22 +441,22 @@ void call_binop(token_t cmd, stack_t *stks[]) {
     stack_push(&topnum,  stks[H_NUMS]);
     stack_push(&nextnum, stks[H_NUMS]);
     stack_push(&cmd,     stks[H_CMDS]);
-    RPN_T resnum = binops[cmd - MUL_E](nextnum, topnum); // arg order
+    RPN_T resnum = binops[cmd - MUL](nextnum, topnum); // arg order
     stack_push(&resnum,  stks[I_STK ]);
 }
 
 
 token_t math_error(void) {
     if (fetestexcept(FE_DIVBYZERO)) {
-       return DBYZ_E;  // 0 i
+       return DBYZ;  // 0 i
     } else if (fetestexcept(FE_OVERFLOW)) {
-        return OFLW_E; // 1e4932 2 ^
+        return OFLW; // 1e4932 2 ^
     } else if (fetestexcept(FE_UNDERFLOW)) {
-        return UFLW_E; // 1e4932 i
+        return UFLW; // 1e4932 i
     } else if (fetestexcept(FE_INVALID)) {
-        return NAN_E;  // inf inf -     or  -4 2 v
+        return INAN; // inf inf -     or  -4 2 v
     } else {
-        return NIL_E;
+        return NIL;
     }
 }
 
@@ -467,11 +464,11 @@ token_t math_error(void) {
 // vet cmds against stack size. print msgs, smallstack and math errors
 void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     if (stack_size(stks[I_STK]) < minsizes[cmd]) {
-        printmsg_fresh(SMAL_E);
+        printmsg_fresh(SMAL);
         return;
     }
     feclearexcept(FE_ALL_EXCEPT); //    not using errno
-    if (cmd == NUM_E) {
+    if (cmd == NUM) {
         stack_push(&inputnum, stks[I_STK]);
         stack_push(&cmd, stks[H_CMDS]);
     } else if (is_binop(cmd)) {   //    * + ^ / - v
@@ -479,12 +476,12 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     } else if (is_nonhist(cmd)) { //    ~ i c s r u
         stack_push(&cmd, stks[H_CMDS]);
         call_nonhist(cmd, stks[I_STK ]);
-    } else if (cmd == DISC_E) {   //    not using a discard()
+    } else if (cmd == DISC) {     //    not using a discard()
         RPN_T tmp;
         stack_pop(&tmp, stks[I_STK ]);
         stack_push(&tmp, stks[H_NUMS]);
         stack_push(&cmd, stks[H_CMDS]);
-    } else if (cmd == HTOG_E) {
+    } else if (cmd == HTOG) {
         toggle_hist_flag();
     }
     printmsg_fresh(cmd);
@@ -501,17 +498,17 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
     char tok0 = *inputbuf;
     if (*inputnum || (tok0 == '0')) {
         // not 0.0L, so it's a number || the input 0.0L comes from a '0'
-        return NUM_E;
+        return NUM;
     } else {
-        int i = 1; // 0 is the padding NUM_E
-        while (i < JUNK_E) {
+        int i = 1; // 0 is the padding NUM
+        while (i < JUNK) {
             if (tok0 == tokenchars[i]) {
                 return (token_t)i;
             }
             i++;
         }
     }
-    return JUNK_E;
+    return JUNK;
 }
 
 
@@ -519,19 +516,19 @@ int handle_input(char *inputbuf, stack_t *stks[]) {
     RPN_T inputnum = RPN_ZERO;
     fgets(inputbuf, BUFSIZ, stdin); // no error check
     char *chp, *str;
-    token_t tok = NUM_E;
-    for (chp = inputbuf; tok != QUIT_E; chp = NULL) {
+    token_t tok = NUM;
+    for (chp = inputbuf; tok != QUIT; chp = NULL) {
         str = strtok(chp, " \t\n");
         if (str == NULL) {
             break; // reached end of input
         }
         tok = tokenize(str, &inputnum);
-        if (tok == UNDO_E) {
+        if (tok == UNDO) {
             undo(stks);
-        } else if (tok < JUNK_E) {
+        } else if (tok < JUNK) {
             vet_do(inputnum, tok, stks);
         }
     }
-    return (tok == QUIT_E);
+    return (tok == QUIT);
 }
 

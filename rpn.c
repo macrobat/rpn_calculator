@@ -21,13 +21,13 @@ const size_t items_display_limit = 42u;
 int main(void) {
     stack_t *rpn_stacks[3];
     rpn_stacks[I_STK ] = stack_create(sizeof(RPN_T));   // 0 interactive stack
-    rpn_stacks[H_NUMS] = stack_create(sizeof(RPN_T));   // 1 hist nums
-    rpn_stacks[H_CMDS] = stack_create(sizeof(token_t)); // 2 hist cmds
+    rpn_stacks[H_NUMS] = stack_create(sizeof(RPN_T));   // 1 history nums
+    rpn_stacks[H_CMDS] = stack_create(sizeof(token_t)); // 2 history cmds
 
     char *inputbuf = malloc(BUFSIZ); // [8192] here
     int quit = 0;
 
-    printmsg(HELP_E); // not printmsg_fresh(). let user repeat first help cmd
+    printmsg(HELP); // not printmsg_fresh(). let user repeat first help cmd
     while (!quit) {
         // display the separator and the stack
         display(items_display_limit, rpn_stacks);
