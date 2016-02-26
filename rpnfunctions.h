@@ -164,21 +164,6 @@ static const size_t minsizes[] = {
 };
 
 
-// opposite cmds to undo nonhists. no binops here
-// {COPY, DISC} not used atm, handled like NUM
-static struct cmd_coord {
-    token_t fwd;
-    token_t rev;
-} opposites[] = {
-    {NEG , NEG },
-    {INVE, INVE},
-    {COPY, DISC}, // leads out of the set. not closed
-    {SWAP, SWAP},
-    {ROLD, ROLU},
-    {ROLU, ROLD},
-};
-
-
 // no commas for h and n strings, using the same index
 // strings get concatenated when printed, need newlines in the strings
 // "junk" padding

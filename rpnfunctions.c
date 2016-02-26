@@ -387,17 +387,18 @@ void call_nonhist(token_t cmd, stack_t *stk) {
 
 
 //  ~ i c s r u ---> ~ i d s u r
-//  not using it for c --> d
+//  not using it for COPY --> DISC. COPY handled like NUM in undo()
 token_t opposite(token_t cmd) {
-    int n = (int)NELEMS(opposites);
-    int i = 0;
-    while (i < n) {
-        if (opposites[i].fwd == cmd) {
-           return opposites[i].rev;
-        }
-        i++;
+    switch (cmd) {
+        case NEG : return NEG ;
+        case INVE: return INVE;
+        case COPY: return DISC; // leads out of the set. not closed
+        case SWAP: return SWAP;
+        case ROLD: return ROLU;
+        case ROLU: return ROLD;
+        default:
+            return JUNK;
     }
-    return JUNK; // return to reassure the compiler
 }
 
 
