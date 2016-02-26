@@ -126,7 +126,7 @@ not all branches in the program are reachable
 */
 // --- display -----------------------------------------------------------------
 
-// with switch cases, cmds don't have to be ordered
+// switch cases are better than arrays, cmds don't have to be ordered
 // easy to return 0, comment out, or add entries
 int has_msg(token_t tok) {
     switch (tok) { // returns. no fallthroughs
@@ -372,17 +372,20 @@ void rolu(stack_t *stk) {
 
 // --- handle input, use stacks, print msgs ------------------------------------
 
+
 // ~ i c s r u  don't use H_NUMS
+// no discard here. nonexistent anyway
 void call_nonhist(token_t cmd, stack_t *stk) {
-    int n = (int)NELEMS(nonhists);
-    int i = 0;
-    while (i < n) {
-        if (nonhists[i].id == cmd) {
-            (nonhists[i].nonhist)(stk);
-            return;
-        }
-        i++;
-    }
+    switch (cmd) {
+        case  NEG:  neg(stk); return;
+        case INVE: inve(stk); return;
+        case COPY: copy(stk); return;
+        case SWAP: swap(stk); return;
+        case ROLD: rold(stk); return;
+        case ROLU: rolu(stk); return;
+        default:
+                   return;
+   }
 }
 
 

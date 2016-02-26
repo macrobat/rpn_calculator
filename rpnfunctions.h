@@ -11,11 +11,8 @@ gcc rpnstack.c rpn_array.c rpnfunctions_array.c -lm -o rpn_array
 
 #define RPN_T long double
 #define RPN_FMT "%.10Lg"
-
 #define RPN_ZERO 0.0L // easier to change types
 #define RPN_ONE  1.0L
-
-#define NELEMS(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 
 static char tokenchars[] =
@@ -123,19 +120,6 @@ extern void swap(stack_t *stk);
 extern void rold(stack_t *stk);
 extern void rolu(stack_t *stk);
 
-// no discard as it would use H_NUMS, not nonhist.
-// anyway, there is no discard() function atm
-static struct {
-    token_t id;
-    void (*nonhist)(stack_t*);
-} nonhists[] = {
-    { NEG,  neg},   //   ~
-    {INVE, inve},   //   i
-    {COPY, copy},   //   c
-    {SWAP, swap},   //   s
-    {ROLD, rold},   //   r
-    {ROLU, rolu},   //   u
-};
 
 // minimal sizes for the stack for allowing commands
 static const size_t minsizes[] = {
