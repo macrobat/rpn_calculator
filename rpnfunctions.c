@@ -64,17 +64,6 @@ want math errors repeated, because the causing funs also change the stack
 
 --- TODO / IDEAS --------------------------------------
 
-typedef enum funtype_e {BINOP, NONHIST, OTHER_BLA};
-decouple the array indices and their elements
-no more tokenchars[] minsizes[] and friends
-many-membered structs with all aspects of a function
-replace vertical arrangement of enum-indexed arrays
-with more horizontal groupings of
-struct funrow {
-    token_t id; char tok; void *fun; void *anti; size_t minsz; int has_msg;
-} funs[] = {};
-
-
 exp x, ln l opposites. what chars for sin cos tan? constant pi p
 long double expl(long double x); // x = -inf works?
 long double logl(long double x);
@@ -116,7 +105,7 @@ t     _     * + ^ / -  v    ~ i c d s r u
 h h h n n n n
 * + ^ / - v ~ i c d s r u
 w a f f l e z
-10 _ * _ ^ _ c _ s _ r _ u _
+10 _ * _ ^ _ c _ d _ s _ r _ u _
 t
 q
 
@@ -126,47 +115,19 @@ not all branches in the program are reachable
 */
 // --- display -----------------------------------------------------------------
 
-// switch cases are better than arrays, cmds don't have to be ordered
-// easy to return 0, comment out, or add entries
-int has_msg(token_t tok) {
-    switch (tok) { // returns. no fallthroughs
-        case ROOT: return 1;
-        case  NEG: return 1;
-        case INVE: return 1;
-        case COPY: return 1;
-        case DISC: return 1;
-        case SWAP: return 1;
-        case ROLD: return 1;
-        case ROLU: return 1;
-        case UNDO: return 1;
-        case HTOG: return 1;
-        case QUIT: return 1;
-        case HELP: return 1;
-        case RANG: return 1;
-        // case JUNK: return 0; // like so
-        case DBYZ: return 1;
-        case OFLW: return 1;
-        case UFLW: return 1;
-        case INAN: return 1;
-        case SMAL: return 1;
-        case SMLU: return 1;
-        default:
-            return 0;
-    }
-}
 
 // checking has_msg twice, could check for not NIL (from math_err)
 void printmsg(token_t msgcode) {
-    if (!has_msg(msgcode)) { return; }
+    if (!funrows[msgcode].has_msg) { return; }
     if (msgcode < JUNK) { // < strlen(tokenchars)
-        printf("%c ", tokenchars[msgcode]);
+        printf("%c ", funrows[msgcode].tok);
     }
     printf("%s\n", messages[msgcode - ROOT]);
 }
 
 // wrapper guarantees freshness. return if seal is broken
 void printmsg_fresh(token_t msgcode) {
-    if (!has_msg(msgcode)) { return; }
+    if (!funrows[msgcode].has_msg) { return; }
     if (msgcode == last_msg) {
         return;
     } else {
@@ -188,7 +149,7 @@ void print_num(void *itemp) {
 }
 
 void print_cmdname(void *itemp) {
-    printf("%s", token_names[*(token_t*)itemp]);
+    printf("%s", funrows[*(token_t*)itemp].name);
 }
 
 
@@ -214,13 +175,13 @@ void display_stack(void (*print_item)(void*),
 
 
 void display_history(size_t items_display_limit, stack_t *stks[]) {
-    if (! stack_empty(stks[H_NUMS])) {
+    if (!stack_empty(stks[H_NUMS])) {
         puts("history numbers:");
         RPN_T num;
         display_stack(print_num, &num, items_display_limit, stks[H_NUMS]);
         puts("");
     }
-    if (! stack_empty(stks[H_CMDS])) {
+    if (!stack_empty(stks[H_CMDS])) {
         puts("history cmds:");
         token_t cmd;
         display_stack(print_cmdname, &cmd, items_display_limit, stks[H_CMDS]);
@@ -236,7 +197,7 @@ void display(size_t display_len, stack_t *stks[]) {
     if (hist_flag) {
         display_history(display_len, stks);
     }
-    if (! stack_empty(stks[I_STK ])) {
+    if (!stack_empty(stks[I_STK ])) {
         RPN_T num;
         display_stack(print_num, &num, display_len, stks[I_STK ]);
     }
@@ -246,20 +207,6 @@ void display(size_t display_len, stack_t *stks[]) {
 
 // --- operations * + / - ^ v --------------------------------------------------
 
-// binops: * + ^ / - v
-// have the typesig RPN_T fn(RPN_T, RPN_T)
-int is_binop(token_t cmd) {
-    switch (cmd) {
-        case  MUL: return 1;
-        case  ADD: return 1;
-        case POWE: return 1;
-        case DIVI: return 1;
-        case  SUB: return 1;
-        case ROOT: return 1;
-        default:
-            return 0;
-    }
-}
 
 // binary operations
 // with long doubles: can return and use inf and nan
@@ -291,19 +238,6 @@ RPN_T root(RPN_T x, RPN_T y) {
 
 // --- commands ----------------------------------------------------------------
 
-// ~ i c s r u, no d discard
-int is_nonhist(token_t cmd) {
-    switch (cmd) {
-        case  NEG: return 1;
-        case INVE: return 1;
-        case COPY: return 1;
-        case SWAP: return 1;
-        case ROLD: return 1;
-        case ROLU: return 1;
-        default:
-            return 0;
-    }
-}
 
 // negate, unary minus
 void neg(stack_t *stk) {
@@ -337,6 +271,8 @@ void swap(stack_t *stk) {
     stack_push(&topnum, stk);
     stack_push(&nextnum, stk);
 }
+
+void noop(void) { return; }
 
 // --- commands to roll stack up or down ---------------------------------------
 
@@ -376,32 +312,8 @@ void rolu(stack_t *stk) {
 // ~ i c s r u  don't use H_NUMS
 // no discard here. nonexistent anyway
 void call_nonhist(token_t cmd, stack_t *stk) {
-    switch (cmd) {
-        case  NEG:  neg(stk); return;
-        case INVE: inve(stk); return;
-        case COPY: copy(stk); return;
-        case SWAP: swap(stk); return;
-        case ROLD: rold(stk); return;
-        case ROLU: rolu(stk); return;
-        default:
-                   return;
-   }
-}
-
-
-//  ~ i c s r u ---> ~ i d s u r
-//  not using it for COPY --> DISC. COPY handled like NUM in undo()
-token_t opposite(token_t cmd) {
-    switch (cmd) {
-        case NEG : return NEG ;
-        case INVE: return INVE;
-        case COPY: return DISC; // leads out of the set. not closed
-        case SWAP: return SWAP;
-        case ROLD: return ROLU;
-        case ROLU: return ROLD;
-        default:
-            return JUNK;
-    }
+    void (*nonhist)(stack_t*) = funrows[cmd].fun;
+    nonhist(stk);
 }
 
 
@@ -418,7 +330,7 @@ void undo(stack_t *stks[]) {
     stack_pop(&cmd, stks[H_CMDS]);
     if (cmd == NUM || cmd == COPY) { // test copy() before other nonhists
         stack_pop(&tmp, stks[I_STK]);
-    } else if (is_binop(cmd)) { //  * + ^ / - v
+    } else if (funrows[cmd].type == BINOP) { //  * + ^ / - v
         RPN_T topnum;
         RPN_T nextnum;
         stack_pop(&tmp,      stks[I_STK ]);
@@ -429,8 +341,8 @@ void undo(stack_t *stks[]) {
     } else if (cmd == DISC) {
         stack_pop(&tmp, stks[H_NUMS]);
         stack_push(&tmp, stks[I_STK]);
-    } else if (is_nonhist(cmd) && cmd != COPY) {
-            call_nonhist(opposite(cmd), stks[I_STK]);
+    } else if (funrows[cmd].type == NONHIST && cmd != COPY) {
+            call_nonhist(funrows[cmd].anti, stks[I_STK]);
     }
 }
 
@@ -445,7 +357,8 @@ void call_binop(token_t cmd, stack_t *stks[]) {
     stack_push(&topnum,  stks[H_NUMS]);
     stack_push(&nextnum, stks[H_NUMS]);
     stack_push(&cmd,     stks[H_CMDS]);
-    RPN_T resnum = binops[cmd - MUL](nextnum, topnum); // arg order
+    RPN_T(*bop)(RPN_T, RPN_T) = funrows[cmd].fun;
+    RPN_T resnum = bop(nextnum, topnum); // arg order
     stack_push(&resnum,  stks[I_STK ]);
 }
 
@@ -467,17 +380,17 @@ token_t math_error(void) {
 
 // vet cmds against stack size. print msgs, smallstack and math errors
 void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
-    if (stack_size(stks[I_STK]) < minsizes[cmd]) {
+    if (stack_size(stks[I_STK]) < funrows[cmd].minsz) {
         printmsg_fresh(SMAL);
         return;
     }
-    feclearexcept(FE_ALL_EXCEPT); //    not using errno
+    feclearexcept(FE_ALL_EXCEPT);
     if (cmd == NUM) {
         stack_push(&inputnum, stks[I_STK]);
         stack_push(&cmd, stks[H_CMDS]);
-    } else if (is_binop(cmd)) {   //    * + ^ / - v
+    } else if (funrows[cmd].type == BINOP) {   //    * + ^ / - v
         call_binop(cmd, stks);
-    } else if (is_nonhist(cmd)) { //    ~ i c s r u
+    } else if (funrows[cmd].type == NONHIST) { //    ~ i c s r u
         stack_push(&cmd, stks[H_CMDS]);
         call_nonhist(cmd, stks[I_STK ]);
     } else if (cmd == DISC) {     //    not using a discard()
@@ -506,7 +419,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
     } else {
         int i = 1; // 0 is the padding NUM
         while (i < JUNK) {
-            if (tok0 == tokenchars[i]) {
+            if (tok0 == funrows[i].tok) {
                 return (token_t)i;
             }
             i++;

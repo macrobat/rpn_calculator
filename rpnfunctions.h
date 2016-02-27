@@ -15,11 +15,6 @@ gcc rpnstack.c rpn_array.c rpnfunctions_array.c -lm -o rpn_array
 #define RPN_ONE  1.0L
 
 
-static char tokenchars[] =
-    "0*+^/-v~icdsru_tqhn";
-//   0123456789012345678   len == 19 without '\0'. no token for junk chars
-
-// the orders in these arrays are important. enums as array indices
 // subsets of these enums have different roles
 // aspects: tokens, messages, functions and their attributes
 typedef enum token_e {
@@ -58,44 +53,6 @@ typedef enum token_e {
      NIL,  //         26             ok, no msg, no error. limit
 } token_t;
 
-// mainly names of the functions, but non-functions are here too
-// use the old 4-letter names for input with flex?
-// currently only using those that use H_CMDS
-static char *token_names[] = {
-    "number",       //     0
-
-    "multiply",     //     1
-    "add",          //     2
-    "power",        //     3
-    "divide",       //     4
-    "subtract",     //     5
-    "root",         //     6
-
-    "negate",       //     7
-    "invert",       //     8
-    "copy",         //     9
-    "discard",      //    10
-    "swap",         //    11
-    "rolldown",     //    12
-    "rollup",       //    13
-//  -------------------------------------- not using these:
-    "undo",         //    14
-    "togglehist",   //    15
-
-    "quit",         //    16
-    "help",         //    17
-    "numberrange",  //    18
-
-    "junk",         //    19
-    "divbyzero",    //    20
-    "overflow",     //    21
-    "underflow",    //    22
-    "nan",          //    23
-    "smallstack",   //    24
-    "nohist",       //    25
-    "nil",          //    26
-};
-
 
 extern RPN_T  mul(RPN_T x, RPN_T y);
 extern RPN_T  add(RPN_T x, RPN_T y);
@@ -103,15 +60,6 @@ extern RPN_T powe(RPN_T x, RPN_T y); // pow was taken
 extern RPN_T divi(RPN_T x, RPN_T y); // div was taken
 extern RPN_T  sub(RPN_T x, RPN_T y);
 extern RPN_T root(RPN_T x, RPN_T y);
-
-static RPN_T (*binops[])(RPN_T, RPN_T) = {
-    mul,    // 0
-    add,    // 1
-    powe,   // 2
-    divi,   // 3
-    sub,    // 4
-    root,   // 5
-};
 
 extern void  neg(stack_t *stk);
 extern void inve(stack_t *stk);
@@ -121,30 +69,52 @@ extern void rold(stack_t *stk);
 extern void rolu(stack_t *stk);
 
 
-// minimal sizes for the stack for allowing commands
-static const size_t minsizes[] = {
-    0u,  //    0     0
+extern void noop(void);
 
-    2u,  //    *     1
-    2u,  //    +     2
-    2u,  //    ^     3
-    2u,  //    /     4
-    2u,  //    -     5
-    2u,  //    v     6
+enum {BINOP, NONHIST, NONOP, MSG, OTHER};
 
-    1u,  //    ~     7
-    1u,  //    i     8
-    1u,  //    c     9
-    1u,  //    d    10
-    2u,  //    s    11
-    2u,  //    r    12
-    2u,  //    u    13
-// ----------------------   not that meaningful:
-    0u,  //    _    14
-    0u,  //    t    15
-    0u,  //    q    16
-    0u,  //    h    17
-    0u,  //    n    18
+// only using the message names that are shown in history
+static struct funrow {
+    char tok;
+    void *fun;
+    size_t minsz;
+    int type;
+    int has_msg;
+    token_t anti;
+    char* name;
+} funrows[] = {
+//    tok   fun  sz  type    msg anti   name
+    {'\0', noop, 0u, OTHER  , 0, NIL , "number"     }, //  NUM
+
+    { '*',  mul, 2u, BINOP  , 0, NIL , "multiply"   }, //  MUL
+    { '+',  add, 2u, BINOP  , 0, NIL , "add"        }, //  ADD
+    { '^', powe, 2u, BINOP  , 0, NIL , "power"      }, // POWE
+    { '/', divi, 2u, BINOP  , 0, NIL , "divide"     }, // DIVI
+    { '-',  sub, 2u, BINOP  , 0, NIL , "subtract"   }, //  SUB
+    { 'v', root, 2u, BINOP  , 1, NIL , "root"       }, // ROOT
+
+    { '~', neg , 1u, NONHIST, 1, NEG , "negate"     }, //  NEG
+    { 'i', inve, 1u, NONHIST, 1, INVE, "invert"     }, // INVE
+    { 'c', copy, 1u, NONHIST, 1, NIL , "copy"       }, // COPY
+    { 'd', noop, 1u, OTHER  , 1, NIL , "discard"    }, // DISC
+    { 's', swap, 2u, NONHIST, 1, SWAP, "swap"       }, // SWAP
+    { 'r', rold, 2u, NONHIST, 1, ROLU, "rolldown"   }, // ROLD
+    { 'u', rolu, 2u, NONHIST, 1, ROLD, "rollup"     }, // ROLU
+
+    { '_', noop, 0u, NONOP  , 1, NIL , "undo"       }, // UNDO
+    { 't', noop, 0u, NONOP  , 1, NIL , "togglehist" }, // HTOG
+    { 'q', noop, 0u, NONOP  , 1, NIL , "quit"       }, // QUIT
+    { 'h', noop, 0u, NONOP  , 1, NIL , "help"       }, // HELP
+    { 'n', noop, 0u, NONOP  , 1, NIL , "numberrange"}, // RANG
+
+    {'\0', noop, 0u, OTHER  , 0, NIL , "junk"       }, // JUNK
+    {'\0', noop, 0u, MSG    , 1, NIL , "divbyzero"  }, // DBYZ
+    {'\0', noop, 0u, MSG    , 1, NIL , "overflow"   }, // OFLW
+    {'\0', noop, 0u, MSG    , 1, NIL , "underflow"  }, // UFLW
+    {'\0', noop, 0u, MSG    , 1, NIL , "nan"        }, //  NAN
+    {'\0', noop, 0u, MSG    , 1, NIL , "smallstack" }, // SMAL
+    {'\0', noop, 0u, MSG    , 1, NIL , "nohist"     }, // SMLU
+    {'\0', noop, 0u, MSG    , 0, NIL , "nil"        }, //  NIL
 };
 
 
@@ -222,24 +192,19 @@ extern void display_stack(void (*print_item)(void*),
 
 extern void display_history(size_t items_display_limit, stack_t *stks[]);
 
-extern int has_msg(token_t tok);
-
 extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
 
 // display() declared
 // binops and nonhists funs declared
 
-extern int is_binop(token_t cmd);
 extern void call_binop(token_t cmd, stack_t *stks[]);
-extern int is_nonhist(token_t cmd);
 extern void call_nonhist(token_t cmd, stack_t *stk);
 
 extern void roll_stack(int direction, stack_t *stk);
 extern void rold(stack_t *stk);
 extern void rolu(stack_t *stk);
 
-extern token_t opposite(token_t cmd);
 extern void undo(stack_t *stks[]);
 extern token_t math_error(void);
 extern void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]);
