@@ -5,13 +5,11 @@
 // #include <float.h>   // no. limits just for msg, works for this machine
 // #include <errno.h>   // in stack.c too. inf is better than error msgs
 #include <fenv.h>       // man fenv; man math_error
-
 #include "rpnstack.h"
 #include "rpnfunctions.h"
 
 // rpnfunctions.c
 // a reverse polish notation calculator
-// more description in rpn.c
 
 /* --- comments ----------------------------------------------------------------
 
@@ -62,12 +60,13 @@ printmsg()
 there's a wrapper around it and a global to avoid repetition
 want math errors repeated, because the causing funs also change the stack
 
+1 e l gives 0.9999999998, must use H_NUMS
+
 --- TODO / IDEAS --------------------------------------
 
-exp x, ln l opposites. what chars for sin cos tan? constant pi p
-long double expl(long double x); // x = -inf works?
-long double logl(long double x);
+what chars for sin cos tan? constant pi p
 
+root v is a visual pun on ^
 
 printmsg() can be spammy, have a toggle for it?
 
@@ -99,12 +98,12 @@ all branches undo, getting all the opposites on nonhists.
 toggle hist
 end
 
-t     _     * + ^ / -  v    ~ i c d s r u
+t     _     * + ^ / -  v    e l     ~ i c d s r u
 0 i 0 i 1.18973e+4932 i _ c ^ - -9 2 v
 0x0 -1.1e1 2.2e-2 3.3 4e400 5 6 7 8 9
 h h h n n n n
-* + ^ / - v ~ i c d s r u
-w a f f l e z
+* + ^ / - v e l ~ i c d s r u
+a b f g j k m o p x y z
 10 _ * _ ^ _ c _ d _ s _ r _ u _
 t
 q
@@ -116,12 +115,13 @@ not all branches in the program are reachable
 // --- display -----------------------------------------------------------------
 
 
-// checking has_msg twice, could check for not NIL (from math_err)
+// checking has_msg twice, could check for not JUNK (from math_err)
 void printmsg(token_t msgcode) {
     if (!funrows[msgcode].has_msg) { return; }
-    if (msgcode < JUNK) { // < strlen(tokenchars)
+    if (funrows[msgcode].tok) { // don't want a superfluous space
         printf("%c ", funrows[msgcode].tok);
     }
+    // - ROOT, the first messages[] entry
     printf("%s\n", messages[msgcode - ROOT]);
 }
 
@@ -137,11 +137,6 @@ void printmsg_fresh(token_t msgcode) {
     }
 }
 
-
-void toggle_hist_flag(void) {
-    int *flagp = &hist_flag;
-    *flagp = !(*flagp);
-}
 
 // format string RPN_FMT for long double is "%.10Lg"
 void print_num(void *itemp) {
@@ -205,21 +200,23 @@ void display(size_t display_len, stack_t *stks[]) {
 }
 
 
-// --- operations * + / - ^ v --------------------------------------------------
-
+// --- operations * + / - ^ v e l ----------------------------------------------
+// with long doubles: can return and use inf and nan
 
 // binary operations
-// with long doubles: can return and use inf and nan
 RPN_T mul(RPN_T x, RPN_T y) {
     return x * y;
 }
+
 RPN_T add(RPN_T x, RPN_T y) {
     return x + y;
 }
+
 // can handle floating point division with 0.0 or 0.0L. returns inf
 RPN_T divi(RPN_T x, RPN_T y) {
     return x / y;
 }
+
 // sub is the binary operation subtract, not neg() ~
 RPN_T sub(RPN_T x, RPN_T y) {
     return x - y;
@@ -236,8 +233,16 @@ RPN_T root(RPN_T x, RPN_T y) {
 }
 
 
-// --- commands ----------------------------------------------------------------
+// unary operations EXPE x, LOGN l
+RPN_T expe(RPN_T x) {
+    return expl(x);
+}
 
+RPN_T logn(RPN_T x) {
+    return logl(x);
+}
+
+// --- commands ----------------------------------------------------------------
 
 // negate, unary minus
 void neg(stack_t *stk) {
@@ -261,7 +266,8 @@ void copy(stack_t *stk) {
     stack_push(&tmp, stk);
 }
 
-// no discard() for DISC
+// DISC d discard would be just a pop
+// and then you'd have to push to H_NUMS anyway
 
 void swap(stack_t *stk) {
     RPN_T topnum;
@@ -272,13 +278,18 @@ void swap(stack_t *stk) {
     stack_push(&nextnum, stk);
 }
 
+// HTOG t
+void toggle_hist_flag(void) {
+    int *flagp = &hist_flag;
+    *flagp = !(*flagp);
+}
+
 void noop(void) { return; }
 
-// --- commands to roll stack up or down ---------------------------------------
 
-// helper for rolldown and rollup
+// --- roll stack up or down ---------------------------------------------------
+
 // there are atleast 2 elements when called
-// warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
 void roll_stack(int direction, stack_t *stk) {
     void *tmp = malloc(stk->elemsz);
     if (tmp == NULL) {
@@ -298,6 +309,7 @@ void roll_stack(int direction, stack_t *stk) {
     free(tmp);
 }
 
+
 void rold(stack_t *stk) {
     roll_stack(1, stk);
 }
@@ -308,29 +320,20 @@ void rolu(stack_t *stk) {
 
 // --- handle input, use stacks, print msgs ------------------------------------
 
-
-// ~ i c s r u  don't use H_NUMS
-// no discard here. nonexistent anyway
-void call_nonhist(token_t cmd, stack_t *stk) {
-    void (*nonhist)(stack_t*) = funrows[cmd].fun;
-    nonhist(stk);
-}
-
-
 // can't undo an undo
 // could print what cmd is undone
 void undo(stack_t *stks[]) {
     if (stack_empty(stks[H_CMDS])) {
         printmsg_fresh(SMLU);
         return;
-    } // don't msg until we actually undo
+    }
     printmsg_fresh(UNDO);
     token_t cmd;
     RPN_T tmp;
     stack_pop(&cmd, stks[H_CMDS]);
-    if (cmd == NUM || cmd == COPY) { // test copy() before other nonhists
+    if (cmd == NUM || cmd == COPY) { // testing COPY before other nonhists
         stack_pop(&tmp, stks[I_STK]);
-    } else if (funrows[cmd].type == BINOP) { //  * + ^ / - v
+    } else if (funrows[cmd].type == BINARY) { //  * + ^ / - v
         RPN_T topnum;
         RPN_T nextnum;
         stack_pop(&tmp,      stks[I_STK ]);
@@ -338,42 +341,56 @@ void undo(stack_t *stks[]) {
         stack_pop(&nextnum,  stks[H_NUMS]);
         stack_push(&topnum,  stks[I_STK ]);
         stack_push(&nextnum, stks[I_STK ]);
+    } else if (funrows[cmd].type == UNARY) {  // e l
+        stack_pop(&tmp,      stks[I_STK ]);
+        stack_pop(&tmp,      stks[H_NUMS]);
+        stack_push(&tmp,     stks[I_STK ]);
+    } else if (funrows[cmd].type == NONHIST && cmd != COPY) {
+        // ~ i s r u. disc() as anti for copy() wouldn't be useful
+        nonhistp = funrows[cmd].anti;
+        nonhistp(stks[I_STK]);
     } else if (cmd == DISC) {
         stack_pop(&tmp, stks[H_NUMS]);
         stack_push(&tmp, stks[I_STK]);
-    } else if (funrows[cmd].type == NONHIST && cmd != COPY) {
-            call_nonhist(funrows[cmd].anti, stks[I_STK]);
     }
 }
 
-// H_NUMS will have pairwise reverse nums compared to I_STK
-// cmd to [index] 1..6 ---> 0..5 just subtracting MUL which is 1
-// NUM is 0 and before the binops in token enums
-void call_binop(token_t cmd, stack_t *stks[]) {
+
+// H_NUMS will have numbers in pairwise reverse order of I_STK
+void call_binary(token_t cmd, stack_t *stks[]) {
     RPN_T topnum;
     RPN_T nextnum;
     stack_pop(&topnum,   stks[I_STK ]);
     stack_pop(&nextnum,  stks[I_STK ]);
     stack_push(&topnum,  stks[H_NUMS]);
     stack_push(&nextnum, stks[H_NUMS]);
-    stack_push(&cmd,     stks[H_CMDS]);
-    RPN_T(*bop)(RPN_T, RPN_T) = funrows[cmd].fun;
-    RPN_T resnum = bop(nextnum, topnum); // arg order
+    binaryp = funrows[cmd].fun;
+    RPN_T resnum = binaryp(nextnum, topnum); // arg order is important
     stack_push(&resnum,  stks[I_STK ]);
+}
+
+
+void call_unary(token_t cmd, stack_t *stks[]) {
+        RPN_T operand;
+        stack_pop(&operand,  stks[I_STK ]);
+        stack_push(&operand, stks[H_NUMS]);
+        unaryp = funrows[cmd].fun;
+        RPN_T result = unaryp(operand);
+        stack_push(&result,  stks[I_STK ]);
 }
 
 
 token_t math_error(void) {
     if (fetestexcept(FE_DIVBYZERO)) {
-       return DBYZ;  // 0 i
+        return DBYZ; // 0 i
     } else if (fetestexcept(FE_OVERFLOW)) {
-        return OFLW; // 1e4932 2 ^
+        return OFLW; // 1e4932 2 ^    or  11357 e
     } else if (fetestexcept(FE_UNDERFLOW)) {
         return UFLW; // 1e4932 i
     } else if (fetestexcept(FE_INVALID)) {
-        return INAN; // inf inf -     or  -4 2 v
+        return INAN; // inf inf -     or  -1 2 v
     } else {
-        return NIL;
+        return JUNK;
     }
 }
 
@@ -384,20 +401,23 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
         printmsg_fresh(SMAL);
         return;
     }
+    if (cmd < UNDO) {
+        stack_push(&cmd, stks[H_CMDS]);
+    }
     feclearexcept(FE_ALL_EXCEPT);
     if (cmd == NUM) {
         stack_push(&inputnum, stks[I_STK]);
-        stack_push(&cmd, stks[H_CMDS]);
-    } else if (funrows[cmd].type == BINOP) {   //    * + ^ / - v
-        call_binop(cmd, stks);
-    } else if (funrows[cmd].type == NONHIST) { //    ~ i c s r u
-        stack_push(&cmd, stks[H_CMDS]);
-        call_nonhist(cmd, stks[I_STK ]);
+    } else if (funrows[cmd].type == BINARY) {  //  * + ^ / - v
+        call_binary(cmd, stks);
+    } else if (funrows[cmd].type == UNARY) {   // e l
+        call_unary(cmd, stks);
+    } else if (funrows[cmd].type == NONHIST) { //  ~ i c s r u
+        nonhistp = funrows[cmd].fun;
+        nonhistp(stks[I_STK]);
     } else if (cmd == DISC) {     //    not using a discard()
         RPN_T tmp;
-        stack_pop(&tmp, stks[I_STK ]);
+        stack_pop(&tmp,  stks[I_STK ]);
         stack_push(&tmp, stks[H_NUMS]);
-        stack_push(&cmd, stks[H_CMDS]);
     } else if (cmd == HTOG) {
         toggle_hist_flag();
     }
@@ -406,8 +426,8 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
 }
 
 
-// "0*+^/-v~icdsru_qhn" also used by printmsg()
-//  012345678901234567
+// 0*+^/-vel~icdsru_qhn     also used in printmsg()
+// 01234567890123456789
 // looks only for numbers and single chars
 // naively checks tok0 == '0'. not using an is_zero()
 token_t tokenize(char *inputbuf, RPN_T *inputnum) {
@@ -417,7 +437,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
         // not 0.0L, so it's a number || the input 0.0L comes from a '0'
         return NUM;
     } else {
-        int i = 1; // 0 is the padding NUM
+        int i = 1; // 0 is NUM
         while (i < JUNK) {
             if (tok0 == funrows[i].tok) {
                 return (token_t)i;
@@ -448,4 +468,5 @@ int handle_input(char *inputbuf, stack_t *stks[]) {
     }
     return (tok == QUIT);
 }
+
 

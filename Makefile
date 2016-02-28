@@ -1,6 +1,5 @@
 # for pasting into a terminal:
-# gcc -g3 -Wall -Wextra -lm \
-#	rpnstack.c rpnfunctions.c rpn.c -o rpn
+# gcc -g3 -Wall -Wextra -lm rpnstack.c rpnfunctions.c rpn.c -o rpn
 
 # # try this with gcov.
 # gcc -fprofile-arcs -ftest-coverage -lm \

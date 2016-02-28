@@ -1,16 +1,16 @@
 rpn_calculator
-==============
+==============  
 ![calculator image](./rpn_calculator.svg "rpn calculator")  
 reverse polish notation calculator  
-It uses one stack to push numbers on, two stacks for history.  
-You can pop and manipulate the stack with operators and commands, then undo.  
-You can input many numbers and commands in one line.  
-You can toggle history display.  
-It almost tokenizes input, then often calls a corresponding function.  
+It uses one stack to push numbers on.  
 It uses the long double type, so it handles hex input, inf and nan.  
+There are two stacks for history (to restore the interactive stack).  
+Pop and manipulate the stack with operators and commands, then undo.  
+Input many numbers and commands in one line.  
+Toggle the history display.  
 
-no exponential, no natural logarithm. no pi or trig.  
+There is no trig.  
 
-run make.
-the Makefile uses clang.  
+To compile and launch: run make in the rpn_calculator folder.  
+The Makefile uses clang.  Compile in your favourite manner.  
 

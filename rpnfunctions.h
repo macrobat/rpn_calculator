@@ -4,8 +4,10 @@
 
 /*
 rpnfunctions.h
-build like this:
-gcc rpnstack.c rpn_array.c rpnfunctions_array.c -lm -o rpn_array
+a reverse polish notation calculator
+
+example build:
+gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
 
 */
 
@@ -18,9 +20,9 @@ gcc rpnstack.c rpn_array.c rpnfunctions_array.c -lm -o rpn_array
 // subsets of these enums have different roles
 // aspects: tokens, messages, functions and their attributes
 typedef enum token_e {
-             //   char   n    minsize    comment
-     NUM,  //    0     0     0       number, could signify normal, default
-//  ------------------------------     binops, they use H_NUMS
+           //   char   n   minsize   comment
+     NUM,  //    0     0     0       number
+//                                   binary, they use H_NUMS
      MUL,  //    *     1     2
      ADD,  //    +     2     2
     POWE,  //    ^     3     2
@@ -28,32 +30,35 @@ typedef enum token_e {
      SUB,  //    -     5     2
     ROOT,  //    v     6     2       a^(1/b) radical. msg
 
-     NEG,  //    ~     7     1       msgs, no H_NUMS
-    INVE,  //    i     8     1       msg DBYZ
-    COPY,  //    c     9     1
-    DISC,  //    d    10     1       uses H_NUMS
-    SWAP,  //    s    11     2
-    ROLD,  //    r    12     2
-    ROLU,  //    u    13     2
-//  ------------------------------     not in history
-    UNDO,  //    _    14     0       undo_score. C-_ is emacs undo
+    LOGN,  //    l     7     1       unary
+    EXPE,  //    e     8     1
 
-    HTOG,  //    t    15     0       toggle history
-    QUIT,  //    q    16     0
-    HELP,  //    h    17     0
-    RANG,  //    n    18     0       numberrange, not r
-//  ------------------------------
-    JUNK,  //         19             token limit, possible defaultval, ignore
-    DBYZ,  //         20             msg Division by zero
-    OFLW,  //         21             msg Overflow
-    UFLW,  //         22             msg Underflow
-    INAN,  //         23             msg Invalid
-    SMAL,  //         24             msg Stack too small
-    SMLU,  //         25             msg No history to undo. stack too small
-     NIL,  //         26             ok, no msg, no error. limit
+     NEG,  //    ~     9     1       msgs, no H_NUMS
+    INVE,  //    i    10     1       msg DBYZ
+    COPY,  //    c    11     1
+    SWAP,  //    s    12     2
+    ROLD,  //    r    13     2
+    ROLU,  //    u    14     2
+    DISC,  //    d    15     1       uses H_NUMS
+//                                   not in history
+    UNDO,  //    _    16     0       undo_score. C-_ is emacs undo
+
+    HTOG,  //    t    17     0       toggle history
+    QUIT,  //    q    18     0
+    HELP,  //    h    19     0       msg is longer
+    RANG,  //    n    20     0       numberrange, not r
+//
+    JUNK,  //         21             token limit, possible defaultval, ignore
+    DBYZ,  //         22             msg Division by zero
+    OFLW,  //         23             msg Overflow
+    UFLW,  //         24             msg Underflow
+    INAN,  //         25             msg Invalid
+    SMAL,  //         26             msg Stack too small
+    SMLU,  //         27             msg No history to undo. stack too small
 } token_t;
 
 
+static RPN_T (*binaryp)(RPN_T x, RPN_T y);
 extern RPN_T  mul(RPN_T x, RPN_T y);
 extern RPN_T  add(RPN_T x, RPN_T y);
 extern RPN_T powe(RPN_T x, RPN_T y); // pow was taken
@@ -61,6 +66,11 @@ extern RPN_T divi(RPN_T x, RPN_T y); // div was taken
 extern RPN_T  sub(RPN_T x, RPN_T y);
 extern RPN_T root(RPN_T x, RPN_T y);
 
+static RPN_T (*unaryp)(RPN_T x);
+extern RPN_T logn(RPN_T x);
+extern RPN_T expe(RPN_T x);
+
+static void (*nonhistp)(stack_t *stk);
 extern void  neg(stack_t *stk);
 extern void inve(stack_t *stk);
 extern void copy(stack_t *stk);
@@ -68,10 +78,10 @@ extern void swap(stack_t *stk);
 extern void rold(stack_t *stk);
 extern void rolu(stack_t *stk);
 
-
 extern void noop(void);
 
-enum {BINOP, NONHIST, NONOP, MSG, OTHER};
+// harmonize these "types" with cases in vet_do() and undo()
+enum {BINARY, UNARY, NONHIST, NONOP, MSG, OTHER};
 
 // only using the message names that are shown in history
 static struct funrow {
@@ -80,82 +90,85 @@ static struct funrow {
     size_t minsz;
     int type;
     int has_msg;
-    token_t anti;
-    char* name;
+    void *anti;
+    char *name;
 } funrows[] = {
 //    tok   fun  sz  type    msg anti   name
-    {'\0', noop, 0u, OTHER  , 0, NIL , "number"     }, //  NUM
+    {'\0', noop, 0u, OTHER  , 0, noop, "number"     }, //  NUM
 
-    { '*',  mul, 2u, BINOP  , 0, NIL , "multiply"   }, //  MUL
-    { '+',  add, 2u, BINOP  , 0, NIL , "add"        }, //  ADD
-    { '^', powe, 2u, BINOP  , 0, NIL , "power"      }, // POWE
-    { '/', divi, 2u, BINOP  , 0, NIL , "divide"     }, // DIVI
-    { '-',  sub, 2u, BINOP  , 0, NIL , "subtract"   }, //  SUB
-    { 'v', root, 2u, BINOP  , 1, NIL , "root"       }, // ROOT
+    { '*',  mul, 2u, BINARY , 0, noop, "multiply"   }, //  MUL
+    { '+',  add, 2u, BINARY , 0, noop, "add"        }, //  ADD
+    { '^', powe, 2u, BINARY , 0, noop, "power"      }, // POWE
+    { '/', divi, 2u, BINARY , 0, noop, "divide"     }, // DIVI
+    { '-',  sub, 2u, BINARY , 0, noop, "subtract"   }, //  SUB
+    { 'v', root, 2u, BINARY , 1, noop, "root"       }, // ROOT
 
-    { '~', neg , 1u, NONHIST, 1, NEG , "negate"     }, //  NEG
-    { 'i', inve, 1u, NONHIST, 1, INVE, "invert"     }, // INVE
-    { 'c', copy, 1u, NONHIST, 1, NIL , "copy"       }, // COPY
-    { 'd', noop, 1u, OTHER  , 1, NIL , "discard"    }, // DISC
-    { 's', swap, 2u, NONHIST, 1, SWAP, "swap"       }, // SWAP
-    { 'r', rold, 2u, NONHIST, 1, ROLU, "rolldown"   }, // ROLD
-    { 'u', rolu, 2u, NONHIST, 1, ROLD, "rollup"     }, // ROLU
+    { 'l', logn, 1u, UNARY  , 1, noop, "log"        }, // LOGN
+    { 'e', expe, 1u, UNARY  , 1, noop, "exp"        }, // EXPE
 
-    { '_', noop, 0u, NONOP  , 1, NIL , "undo"       }, // UNDO
-    { 't', noop, 0u, NONOP  , 1, NIL , "togglehist" }, // HTOG
-    { 'q', noop, 0u, NONOP  , 1, NIL , "quit"       }, // QUIT
-    { 'h', noop, 0u, NONOP  , 1, NIL , "help"       }, // HELP
-    { 'n', noop, 0u, NONOP  , 1, NIL , "numberrange"}, // RANG
+    { '~', neg , 1u, NONHIST, 1, neg , "negate"     }, //  NEG
+    { 'i', inve, 1u, NONHIST, 1, inve, "invert"     }, // INVE
+    { 'c', copy, 1u, NONHIST, 1, noop, "copy"       }, // COPY
+    { 's', swap, 2u, NONHIST, 1, swap, "swap"       }, // SWAP
+    { 'r', rold, 2u, NONHIST, 1, rolu, "rolldown"   }, // ROLD
+    { 'u', rolu, 2u, NONHIST, 1, rold, "rollup"     }, // ROLU
+    { 'd', noop, 1u, OTHER  , 1, noop, "discard"    }, // DISC
 
-    {'\0', noop, 0u, OTHER  , 0, NIL , "junk"       }, // JUNK
-    {'\0', noop, 0u, MSG    , 1, NIL , "divbyzero"  }, // DBYZ
-    {'\0', noop, 0u, MSG    , 1, NIL , "overflow"   }, // OFLW
-    {'\0', noop, 0u, MSG    , 1, NIL , "underflow"  }, // UFLW
-    {'\0', noop, 0u, MSG    , 1, NIL , "nan"        }, //  NAN
-    {'\0', noop, 0u, MSG    , 1, NIL , "smallstack" }, // SMAL
-    {'\0', noop, 0u, MSG    , 1, NIL , "nohist"     }, // SMLU
-    {'\0', noop, 0u, MSG    , 0, NIL , "nil"        }, //  NIL
+    { '_', noop, 0u, NONOP  , 1, noop, "undo"       }, // UNDO
+    { 't', noop, 0u, NONOP  , 1, noop, "togglehist" }, // HTOG
+    { 'q', noop, 0u, NONOP  , 1, noop, "quit"       }, // QUIT
+    { 'h', noop, 0u, NONOP  , 1, noop, "help"       }, // HELP
+    { 'n', noop, 0u, NONOP  , 1, noop, "numberrange"}, // RANG
+
+    {'\0', noop, 0u, OTHER  , 0, noop, "Junk"       }, // JUNK
+    {'\0', noop, 0u, MSG    , 1, noop, "Div by zero"}, // DBYZ
+    {'\0', noop, 0u, MSG    , 1, noop, "Overflow"   }, // OFLW
+    {'\0', noop, 0u, MSG    , 1, noop, "Underflow"  }, // UFLW
+    {'\0', noop, 0u, MSG    , 1, noop, "Invalid num"}, // INAN
+    {'\0', noop, 0u, MSG    , 1, noop, "Small stack"}, // SMAL
+    {'\0', noop, 0u, MSG    , 1, noop, "No history" }, // SMLU
 };
-
 
 // no commas for h and n strings, using the same index
 // strings get concatenated when printed, need newlines in the strings
-// "junk" padding
 static const char *messages[] = {
-    "root",                     //  0   v pun on ^. non-obvious, so it has msg
-    "negate",                   //  1
-    "invert",                   //  2
-    "copy",                     //  3
-    "discard",                  //  4
-    "swap",                     //  5
-    "rolldown",                 //  6
-    "rollup",                   //  7
-    "undo",                     //  8
-    "togglehist",               //  9
-    "quit",                     // 10
-    "help\n"                    // 11
+    "root",                     //  0
+    "log",                      //  1
+    "exp",                      //  2
+    "negate",                   //  3
+    "invert",                   //  4
+    "copy",                     //  5
+    "swap",                     //  6
+    "rolldown",                 //  7
+    "rollup",                   //  8
+    "discard",                  //  9
+    "undo",                     // 10
+    "togglehist",               // 11
+    "quit",                     // 12
+    "help\n"                    // 13
     "rpn, Reverse Polish Notation floating point calculator\n"
     "Input number to push to the stack. hex format, inf and nan work too\n"
-    "Operators: + * - / ^ v will pop numbers and push the result\n"
+    "Operators: + * - / ^ v  e l to pop number(s) and push result\n"
     " Commands: ~ negate, i invert, c copy, d discard, s swap\n"
     "           r rolldown, u rollup, _ undo, t toggle history\n"
-    "           h this help, n numrange, q quit", // index 11 still
+    "           h this help, n numrange, q quit", // index 13 still
 
-    "numberrange\n"             // 12
-    "IEEE 754 says long doubles have 10 digit precision\n"
+    "numberrange\n"             // 14
+    "IEEE 754 says long doubles have 30 digit precision\n"
     "[ ± LDBL_MIN: ± 3.3621e-4932  ]\n"     // not #include'ing <float.h>
     "[ ± LDBL_MAX: ± 1.18973e+4932 ]",      // no extra newline
 
-    "junk",                     // 13   suppressed elsewhere
-    "Division by zero",         // 14
-    "Overflow",                 // 15
-    "Underflow",                // 16
-    "Not a number, invalid",    // 17
-    "Stack too small",          // 18
-    "No history to undo",       // 19
+    "junk",                     // 15   suppressed elsewhere, padding
+    "Division by zero",         // 16
+    "Overflow",                 // 17
+    "Underflow",                // 18
+    "Not a number, invalid",    // 19
+    "Stack too small",          // 20
+    "No history to undo",       // 21
 };
 
-static token_t last_msg = NIL; // not math errors
+
+static token_t last_msg = JUNK; // not math errors
 static int hist_flag = 0;
 
 static char *hist_sep =
@@ -168,7 +181,8 @@ extern void printmsg(token_t msgcode);
 extern void display(size_t display_len, stack_t *stks[]);
 
 // indices for the rpn_stacks array
-// interactive stack, history nums, history cmds
+// interactive stack
+// history nums, history cmds are for restoring the interactive stack
 enum {I_STK, H_NUMS, H_CMDS};
 
 extern int handle_input(char *inputbuf, stack_t *stks[]);
@@ -177,8 +191,6 @@ extern int handle_input(char *inputbuf, stack_t *stks[]);
 // --- prototypes for when you write tests -------------------------------------
 
 #ifdef RPN_TEST
-// test programs need to know more stuff
-// split to another file?
 
 extern void toggle_hist_flag(void);
 
@@ -198,8 +210,8 @@ extern void print_cmdname(void *itemp);
 // display() declared
 // binops and nonhists funs declared
 
-extern void call_binop(token_t cmd, stack_t *stks[]);
-extern void call_nonhist(token_t cmd, stack_t *stk);
+extern void call_binary(token_t cmd, stack_t *stks[]);
+extern void call_unary(token_t cmd, stack_t *stks[]);
 
 extern void roll_stack(int direction, stack_t *stk);
 extern void rold(stack_t *stk);
