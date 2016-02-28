@@ -20,41 +20,41 @@ gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
 // subsets of these enums have different roles
 // aspects: tokens, messages, functions and their attributes
 typedef enum token_e {
-           //   char   n   minsize   comment
-     NUM,  //    0     0     0       number
-//                                   binary, they use H_NUMS
-     MUL,  //    *     1     2
-     ADD,  //    +     2     2
-    POWE,  //    ^     3     2
-    DIVI,  //    /     4     2       msg DBYZ
-     SUB,  //    -     5     2
-    ROOT,  //    v     6     2       a^(1/b) radical. msg
+           //  char   n   minsize   comment
+     NUM,  //   0     0     0       number
+//                                  binary, they use H_NUMS
+     MUL,  //   *     1     2
+     ADD,  //   +     2     2
+    POWE,  //   ^     3     2
+    DIVI,  //   /     4     2       msg DBYZ
+     SUB,  //   -     5     2
+    ROOT,  //   v     6     2       a^(1/b) radical. msg
 
-    LOGN,  //    l     7     1       unary
-    EXPE,  //    e     8     1
+    LOGN,  //   l     7     1       unary
+    EXPE,  //   e     8     1
 
-     NEG,  //    ~     9     1       msgs, no H_NUMS
-    INVE,  //    i    10     1       msg DBYZ
-    COPY,  //    c    11     1
-    SWAP,  //    s    12     2
-    ROLD,  //    r    13     2
-    ROLU,  //    u    14     2
-    DISC,  //    d    15     1       uses H_NUMS
-//                                   not in history
-    UNDO,  //    _    16     0       undo_score. C-_ is emacs undo
-
-    HTOG,  //    t    17     0       toggle history
-    QUIT,  //    q    18     0
-    HELP,  //    h    19     0       msg is longer
-    RANG,  //    n    20     0       numberrange, not r
+     NEG,  //   ~     9     1       msgs, no H_NUMS
+    INVE,  //   i    10     1       msg DBYZ
+    COPY,  //   c    11     1
+    SWAP,  //   s    12     2
+    ROLD,  //   r    13     2
+    ROLU,  //   u    14     2
+    DISC,  //   d    15     1       uses H_NUMS
+//                                  not in history
+    UNDO,  //   _    16     0       undo_score. C-_ is emacs undo
+    DUMP,  //   w    17     0       print stack. reset stacks
+    HTOG,  //   t    18     0       toggle history
+    QUIT,  //   q    19     0
+    HELP,  //   h    20     0       msg is longer
+    RANG,  //   n    21     0       numberrange, not r
 //
-    JUNK,  //         21             token limit, possible defaultval, ignore
-    DBYZ,  //         22             msg Division by zero
-    OFLW,  //         23             msg Overflow
-    UFLW,  //         24             msg Underflow
-    INAN,  //         25             msg Invalid
-    SMAL,  //         26             msg Stack too small
-    SMLU,  //         27             msg No history to undo. stack too small
+    JUNK,  //        22             token limit, possible defaultval, ignore
+    DBYZ,  //        23             msg Division by zero
+    OFLW,  //        24             msg Overflow
+    UFLW,  //        25             msg Underflow
+    INAN,  //        26             msg Invalid
+    SMAL,  //        27             msg Stack too small
+    SMLU,  //        28             msg No history to undo. stack too small
 } token_t;
 
 
@@ -114,6 +114,7 @@ static struct funrow {
     { 'd', noop, 1u, OTHER  , 1, noop, "discard"        }, // DISC
 
     { '_', noop, 0u, NONOP  , 1, noop, "undo"           }, // UNDO
+    { 'w', noop, 1u, NONOP  , 1, noop, "dumpstack"      }, // DUMP
     { 't', noop, 0u, NONOP  , 1, noop, "togglehist"     }, // HTOG
     { 'q', noop, 0u, NONOP  , 1, noop, "quit"           }, // QUIT
     { 'h', noop, 0u, NONOP  , 1, noop, "help"           }, // HELP
@@ -135,8 +136,8 @@ static const char *multiline_messages[] = {
     "Input number to push to the stack. hex format, inf and nan work too\n"
     "Operators: + * - / ^ v  e l to pop number(s) and push result\n"
     " Commands: ~ negate, i invert, c copy, d discard, s swap\n"
-    "           r rolldown, u rollup, _ undo, t toggle history\n"
-    "           h this help, n numrange, q quit",
+    "           r rolldown, u rollup, w dump stack, t toggle history\n"
+    "           _ undo, h this help, n numrange, q quit",
 
     // not #include'ing <float.h>
     // redo the numbers for other types or architectures
@@ -170,10 +171,11 @@ extern int handle_input(char *inputbuf, stack_t *stks[]);
 
 #ifdef RPN_TEST
 
-extern void toggle_hist_flag(void);
-
 // printmsg() declared above
 extern void printmsg_fresh(token_t msgcode);
+
+extern void toggle_hist_flag(void);
+extern void dump_stack(stack_t *stks[]);
 
 extern void display_stack(void (*print_item)(void*),
                           void *itemp,

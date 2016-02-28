@@ -64,11 +64,15 @@ want math errors repeated, because the causing funs also change the stack
 
 --- TODO / IDEAS --------------------------------------
 
-not all branches in the program are reachable
-
-what chars for sin cos tan? constant pi p
-
 root v is a visual pun on ^
+
+does it matter that not all branches in the program are reachable?
+
+sin cos tan? constant pi p
+
+a command to reset the stacks? keep elemsz, free data, 0u other members
+
+undo could print what cmd is undone
 
 printmsg() can be spammy, have a toggle for it?
 
@@ -283,6 +287,20 @@ void toggle_hist_flag(void) {
     *flagp = !(*flagp);
 }
 
+// DUMP w
+// print the contents of the stack
+void dump_stack(stack_t *stks[]) {
+    size_t lim = stack_size(stks[I_STK ]);
+    size_t z;
+    RPN_T item;
+    for (z = 0u; z < lim; z++) {
+        stack_peek(&item, z, stks[I_STK ]);
+        print_num(&item);
+        printf(" ");
+    }
+    puts("");
+}
+
 void noop(void) { return; }
 
 
@@ -319,8 +337,8 @@ void rolu(stack_t *stk) {
 
 // --- handle input, use stacks, print msgs ------------------------------------
 
-// can't undo an undo
-// could print what cmd is undone
+// undo is for restoring I_STK to a previous state
+// only for the functions < UNDO
 void undo(stack_t *stks[]) {
     if (stack_empty(stks[H_CMDS])) {
         printmsg_fresh(SMLU);
@@ -419,6 +437,8 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
         stack_push(&tmp, stks[H_NUMS]);
     } else if (cmd == HTOG) {
         toggle_hist_flag();
+    } else if (cmd == DUMP) {
+        dump_stack(stks);
     }
     printmsg_fresh(cmd);
     printmsg(math_error()); // print even if it's an old msg
