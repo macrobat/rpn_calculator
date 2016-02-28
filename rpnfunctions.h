@@ -83,7 +83,6 @@ extern void noop(void);
 // harmonize these "types" with cases in vet_do() and undo()
 enum {BINARY, UNARY, NONHIST, NONOP, MSG, OTHER};
 
-// only using the message names that are shown in history
 static struct funrow {
     char tok;
     void *fun;
@@ -93,78 +92,57 @@ static struct funrow {
     void *anti;
     char *name;
 } funrows[] = {
-//    tok   fun  sz  type    msg anti   name
-    {'\0', noop, 0u, OTHER  , 0, noop, "number"     }, //  NUM
+//    tok   fun  sz  type   msg? anti  name / msg
+    {'\0', noop, 0u, OTHER  , 0, noop, "number"         }, //  NUM
 
-    { '*',  mul, 2u, BINARY , 0, noop, "multiply"   }, //  MUL
-    { '+',  add, 2u, BINARY , 0, noop, "add"        }, //  ADD
-    { '^', powe, 2u, BINARY , 0, noop, "power"      }, // POWE
-    { '/', divi, 2u, BINARY , 0, noop, "divide"     }, // DIVI
-    { '-',  sub, 2u, BINARY , 0, noop, "subtract"   }, //  SUB
-    { 'v', root, 2u, BINARY , 1, noop, "root"       }, // ROOT
+    { '*',  mul, 2u, BINARY , 0, noop, "multiply"       }, //  MUL
+    { '+',  add, 2u, BINARY , 0, noop, "add"            }, //  ADD
+    { '^', powe, 2u, BINARY , 0, noop, "power"          }, // POWE
+    { '/', divi, 2u, BINARY , 0, noop, "divide"         }, // DIVI
+    { '-',  sub, 2u, BINARY , 0, noop, "subtract"       }, //  SUB
+    { 'v', root, 2u, BINARY , 1, noop, "root"           }, // ROOT
 
-    { 'l', logn, 1u, UNARY  , 1, noop, "log"        }, // LOGN
-    { 'e', expe, 1u, UNARY  , 1, noop, "exp"        }, // EXPE
+    { 'l', logn, 1u, UNARY  , 1, noop, "log"            }, // LOGN
+    { 'e', expe, 1u, UNARY  , 1, noop, "exp"            }, // EXPE
 
-    { '~', neg , 1u, NONHIST, 1, neg , "negate"     }, //  NEG
-    { 'i', inve, 1u, NONHIST, 1, inve, "invert"     }, // INVE
-    { 'c', copy, 1u, NONHIST, 1, noop, "copy"       }, // COPY
-    { 's', swap, 2u, NONHIST, 1, swap, "swap"       }, // SWAP
-    { 'r', rold, 2u, NONHIST, 1, rolu, "rolldown"   }, // ROLD
-    { 'u', rolu, 2u, NONHIST, 1, rold, "rollup"     }, // ROLU
-    { 'd', noop, 1u, OTHER  , 1, noop, "discard"    }, // DISC
+    { '~', neg , 1u, NONHIST, 1, neg , "negate"         }, //  NEG
+    { 'i', inve, 1u, NONHIST, 1, inve, "invert"         }, // INVE
+    { 'c', copy, 1u, NONHIST, 1, noop, "copy"           }, // COPY
+    { 's', swap, 2u, NONHIST, 1, swap, "swap"           }, // SWAP
+    { 'r', rold, 2u, NONHIST, 1, rolu, "rolldown"       }, // ROLD
+    { 'u', rolu, 2u, NONHIST, 1, rold, "rollup"         }, // ROLU
+    { 'd', noop, 1u, OTHER  , 1, noop, "discard"        }, // DISC
 
-    { '_', noop, 0u, NONOP  , 1, noop, "undo"       }, // UNDO
-    { 't', noop, 0u, NONOP  , 1, noop, "togglehist" }, // HTOG
-    { 'q', noop, 0u, NONOP  , 1, noop, "quit"       }, // QUIT
-    { 'h', noop, 0u, NONOP  , 1, noop, "help"       }, // HELP
-    { 'n', noop, 0u, NONOP  , 1, noop, "numberrange"}, // RANG
+    { '_', noop, 0u, NONOP  , 1, noop, "undo"           }, // UNDO
+    { 't', noop, 0u, NONOP  , 1, noop, "togglehist"     }, // HTOG
+    { 'q', noop, 0u, NONOP  , 1, noop, "quit"           }, // QUIT
+    { 'h', noop, 0u, NONOP  , 1, noop, "help"           }, // HELP
+    { 'n', noop, 0u, NONOP  , 1, noop, "numberrange"    }, // RANG
 
-    {'\0', noop, 0u, OTHER  , 0, noop, "Junk"       }, // JUNK
-    {'\0', noop, 0u, MSG    , 1, noop, "Div by zero"}, // DBYZ
-    {'\0', noop, 0u, MSG    , 1, noop, "Overflow"   }, // OFLW
-    {'\0', noop, 0u, MSG    , 1, noop, "Underflow"  }, // UFLW
-    {'\0', noop, 0u, MSG    , 1, noop, "Invalid num"}, // INAN
-    {'\0', noop, 0u, MSG    , 1, noop, "Small stack"}, // SMAL
-    {'\0', noop, 0u, MSG    , 1, noop, "No history" }, // SMLU
+    {'\0', noop, 0u, OTHER  , 0, noop, "Junk"           }, // JUNK
+    {'\0', noop, 0u, MSG    , 1, noop, "Divide by zero" }, // DBYZ
+    {'\0', noop, 0u, MSG    , 1, noop, "Overflow"       }, // OFLW
+    {'\0', noop, 0u, MSG    , 1, noop, "Underflow"      }, // UFLW
+    {'\0', noop, 0u, MSG    , 1, noop, "Invalid num"    }, // INAN
+    {'\0', noop, 0u, MSG    , 1, noop, "Stack too small"}, // SMAL
+    {'\0', noop, 0u, MSG    , 1, noop, "No undo history"}, // SMLU
 };
 
-// no commas for h and n strings, using the same index
-// strings get concatenated when printed, need newlines in the strings
-static const char *messages[] = {
-    "root",                     //  0
-    "log",                      //  1
-    "exp",                      //  2
-    "negate",                   //  3
-    "invert",                   //  4
-    "copy",                     //  5
-    "swap",                     //  6
-    "rolldown",                 //  7
-    "rollup",                   //  8
-    "discard",                  //  9
-    "undo",                     // 10
-    "togglehist",               // 11
-    "quit",                     // 12
-    "help\n"                    // 13
+// no commas after these h, n msg strings. using the same index
+// strings get concatenated when printed, need newlines
+static const char *multiline_messages[] = {
     "rpn, Reverse Polish Notation floating point calculator\n"
     "Input number to push to the stack. hex format, inf and nan work too\n"
     "Operators: + * - / ^ v  e l to pop number(s) and push result\n"
     " Commands: ~ negate, i invert, c copy, d discard, s swap\n"
     "           r rolldown, u rollup, _ undo, t toggle history\n"
-    "           h this help, n numrange, q quit", // index 13 still
+    "           h this help, n numrange, q quit",
 
-    "numberrange\n"             // 14
+    // not #include'ing <float.h>
+    // redo the numbers for other types or architectures
     "IEEE 754 says long doubles have 30 digit precision\n"
-    "[ ± LDBL_MIN: ± 3.3621e-4932  ]\n"     // not #include'ing <float.h>
-    "[ ± LDBL_MAX: ± 1.18973e+4932 ]",      // no extra newline
-
-    "junk",                     // 15   suppressed elsewhere, padding
-    "Division by zero",         // 16
-    "Overflow",                 // 17
-    "Underflow",                // 18
-    "Not a number, invalid",    // 19
-    "Stack too small",          // 20
-    "No history to undo",       // 21
+    "[ ± LDBL_MIN: ± 3.3621e-4932  ]\n"
+    "[ ± LDBL_MAX: ± 1.18973e+4932 ]", // no newline in the last string
 };
 
 

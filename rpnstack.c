@@ -6,8 +6,7 @@
 
 //  __ helper functions ________________________________________
 
-// from Zed Shaw learn c thehardway
-void stack_die(const char *message) {
+void stack_error(const char *message) {
     if (errno) {
         perror(message);
     } else {
@@ -24,7 +23,7 @@ void stack_grow_full(stack_t *stk) {
     stk->data =
         realloc(stk->data, stk->elemsz * new_nelems);
     if (stk->data == NULL) {
-        stack_die("Failed to grow stack");
+        stack_error("Failed to grow stack");
     } else {
         stk->nelems = new_nelems;
     stk->shrinkwhen = (size_t)(stk->nelems * stack_shrinklimit);
@@ -38,7 +37,7 @@ void stack_shrink_halfful(stack_t *stk) {
     stk->data =
         realloc(stk->data, stk->elemsz * new_nelems);
     if (stk->data == NULL) {
-        stack_die("Failed to shrink stack");
+        stack_error("Failed to shrink stack");
     }
     stk->nelems = new_nelems;
     stk->shrinkwhen = (size_t)(stk->nelems * stack_shrinklimit);
@@ -49,7 +48,7 @@ void stack_shrink_halfful(stack_t *stk) {
 stack_t *stack_create(size_t sz) {
     stack_t *tmp = malloc(sizeof(*tmp));
     if (tmp == NULL) {
-        stack_die("Failed to create a stack");
+        stack_error("Failed to create a stack");
     }
     tmp->data = NULL;
     tmp->elemsz = sz;
@@ -86,7 +85,7 @@ void stack_push(void *itemp, stack_t *stk) {
 
 void stack_pop(void *itemp, stack_t *stk) {
     if (stack_empty (stk)) {
-        stack_die("Tried to pop an empty stack");
+        stack_error("Tried to pop an empty stack");
     }                     // decrement index before use
     memcpy(itemp, stk->data + --stk->index * stk->elemsz, stk->elemsz);
     stack_shrink_halfful(stk);
@@ -94,7 +93,7 @@ void stack_pop(void *itemp, stack_t *stk) {
 
 void stack_top(void *itemp, stack_t *stk) {
     if (stack_empty (stk)) {
-        stack_die("Tried to top an empty stack");
+        stack_error("Tried to top an empty stack");
     }
     memcpy(itemp, stk->data + (stk->index - 1u) * stk->elemsz, stk->elemsz);
 }
@@ -102,10 +101,10 @@ void stack_top(void *itemp, stack_t *stk) {
 // stackwise backwards. here, 0u is bottom, index - 1u is top
 void stack_peek(void *itemp, size_t dataindex, stack_t *stk) {
     if (stack_empty (stk)) {
-        stack_die("Tried to peek an empty stack");
+        stack_error("Tried to peek an empty stack");
     }
     if (dataindex >= stk->index) {
-        stack_die("Tried to peek over top of stack");
+        stack_error("Tried to peek over top of stack");
     }
     memcpy(itemp, stk->data + dataindex * stk->elemsz, stk->elemsz);
 }

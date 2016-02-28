@@ -64,6 +64,8 @@ want math errors repeated, because the causing funs also change the stack
 
 --- TODO / IDEAS --------------------------------------
 
+not all branches in the program are reachable
+
 what chars for sin cos tan? constant pi p
 
 root v is a visual pun on ^
@@ -73,7 +75,6 @@ printmsg() can be spammy, have a toggle for it?
 is_zero(). what can a long double zero look like? would be obviated by flex
 (not very important. false positives don't matter much here)
 0 preceded by [+-] fails to insert, interpreted as the operations [+-]
-
 
 flex/bison
     would be a rewrite in stages
@@ -108,12 +109,8 @@ a b f g j k m o p x y z
 t
 q
 
-
-not all branches in the program are reachable
-
 */
 // --- display -----------------------------------------------------------------
-
 
 // checking has_msg twice, could check for not JUNK (from math_err)
 void printmsg(token_t msgcode) {
@@ -121,8 +118,10 @@ void printmsg(token_t msgcode) {
     if (funrows[msgcode].tok) { // don't want a superfluous space
         printf("%c ", funrows[msgcode].tok);
     }
-    // - ROOT, the first messages[] entry
-    printf("%s\n", messages[msgcode - ROOT]);
+    printf("%s\n", funrows[msgcode].name);
+    if (msgcode == HELP || msgcode == RANG) {
+        printf("%s\n", multiline_messages[msgcode - HELP]);
+    }
 }
 
 // wrapper guarantees freshness. return if seal is broken
