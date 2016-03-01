@@ -6,9 +6,6 @@
 rpnfunctions.h
 a reverse polish notation calculator
 
-example build:
-gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
-
 */
 
 #define RPN_T long double
@@ -33,26 +30,26 @@ typedef enum token_e {
     LOGN,  //   l     7     1       unary
     EXPE,  //   e     8     1
 
-     NEG,  //   ~     9     1       msgs, no H_NUMS
-    INVE,  //   i    10     1       msg DBYZ
+     NEG,  //   ~     9     1       nonhists. have msgs, no H_NUMS
+    INVE,  //   i    10     1       also msg DBYZ
     COPY,  //   c    11     1
     SWAP,  //   s    12     2
     ROLD,  //   r    13     2
     ROLU,  //   u    14     2
     DISC,  //   d    15     1       uses H_NUMS
-//                                  not in history
+//                                  not in history:
     UNDO,  //   _    16     0       undo_score. C-_ is emacs undo
     DUMP,  //   w    17     0       print stack. reset stacks
     HTOG,  //   t    18     0       toggle history
     QUIT,  //   q    19     0
-    HELP,  //   h    20     0       msg is longer
+    HELP,  //   h    20     0       msg is multiline
     RANG,  //   n    21     0       numberrange, not r
 //
     JUNK,  //        22             token limit, possible defaultval, ignore
-    DBYZ,  //        23             msg Division by zero
-    OFLW,  //        24             msg Overflow
-    UFLW,  //        25             msg Underflow
-    INAN,  //        26             msg Invalid
+    DBYZ,  //        23             msg math_error() Division by zero
+    OFLW,  //        24             msg math_error() Overflow
+    UFLW,  //        25             msg math_error() Underflow
+    INAN,  //        26             msg math_error() Invalid
     SMAL,  //        27             msg Stack too small
     SMLU,  //        28             msg No history to undo. stack too small
 } token_t;
@@ -61,8 +58,8 @@ typedef enum token_e {
 static RPN_T (*binaryp)(RPN_T x, RPN_T y);
 extern RPN_T  mul(RPN_T x, RPN_T y);
 extern RPN_T  add(RPN_T x, RPN_T y);
-extern RPN_T powe(RPN_T x, RPN_T y); // pow was taken
-extern RPN_T divi(RPN_T x, RPN_T y); // div was taken
+extern RPN_T powe(RPN_T x, RPN_T y); // the name pow() is taken
+extern RPN_T divi(RPN_T x, RPN_T y); // the name div() is taken
 extern RPN_T  sub(RPN_T x, RPN_T y);
 extern RPN_T root(RPN_T x, RPN_T y);
 
@@ -139,7 +136,7 @@ static const char *multiline_messages[] = {
     "           r rolldown, u rollup, w dump stack, t toggle history\n"
     "           _ undo, h this help, n numrange, q quit",
 
-    // not #include'ing <float.h>
+    // not #include'ing <float.h> for these limits
     // redo the numbers for other types or architectures
     "IEEE 754 says long doubles have 30 digit precision\n"
     "[ ± LDBL_MIN: ± 3.3621e-4932  ]\n"
@@ -147,7 +144,8 @@ static const char *multiline_messages[] = {
 };
 
 
-static token_t last_msg = JUNK; // not math errors
+// global for printmsg_fresh, not for math_errror()
+static token_t last_msg = JUNK;
 static int hist_flag = 0;
 
 static char *hist_sep =
@@ -160,8 +158,8 @@ extern void printmsg(token_t msgcode);
 extern void display(size_t display_len, stack_t *stks[]);
 
 // indices for the rpn_stacks array
-// interactive stack
-// history nums, history cmds are for restoring the interactive stack
+// 0: interactive stack
+// 1: history nums and 2: history cmds are for restoring the interactive stack
 enum {I_STK, H_NUMS, H_CMDS};
 
 extern int handle_input(char *inputbuf, stack_t *stks[]);
@@ -175,7 +173,7 @@ extern int handle_input(char *inputbuf, stack_t *stks[]);
 extern void printmsg_fresh(token_t msgcode);
 
 extern void toggle_hist_flag(void);
-extern void dump_stack(stack_t *stks[]);
+extern void dump_stack(stack_t *stack);
 
 extern void display_stack(void (*print_item)(void*),
                           void *itemp,
@@ -188,7 +186,7 @@ extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
 
 // display() declared
-// binops and nonhists funs declared
+// binary, unary, and nonhists funs declared
 
 extern void call_binary(token_t cmd, stack_t *stks[]);
 extern void call_unary(token_t cmd, stack_t *stks[]);

@@ -287,14 +287,14 @@ void toggle_hist_flag(void) {
     *flagp = !(*flagp);
 }
 
-// DUMP w
-// print the contents of the stack
-void dump_stack(stack_t *stks[]) {
-    size_t lim = stack_size(stks[I_STK ]);
+// DUMP w --print the contents of the stack in one line
+// not resetting the stacks.
+void dump_stack(stack_t *stk) {
+    size_t lim = stack_size(stk);
     size_t z;
     RPN_T item;
     for (z = 0u; z < lim; z++) {
-        stack_peek(&item, z, stks[I_STK ]);
+        stack_peek(&item, z, stk);
         print_num(&item);
         printf(" ");
     }
@@ -438,7 +438,7 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     } else if (cmd == HTOG) {
         toggle_hist_flag();
     } else if (cmd == DUMP) {
-        dump_stack(stks);
+        dump_stack(stks[I_STK ]);
     }
     printmsg_fresh(cmd);
     printmsg(math_error()); // print even if it's an old msg

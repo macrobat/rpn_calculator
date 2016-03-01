@@ -5,6 +5,10 @@
 /*
 rpn.c
 a reverse polish notation calculator
+
+example build:
+gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
+
 */
 
 const size_t items_display_limit = 60u;
@@ -18,7 +22,7 @@ int main(void) {
     char *inputbuf = malloc(BUFSIZ); // [8192] here
     int quit = 0;
 
-    printmsg(HELP); // not printmsg_fresh(). let user repeat first help cmd
+    printmsg(HELP); // not printmsg_fresh(), let user repeat first help cmd
     while (!quit) {
         // display the separator and the stack
         display(items_display_limit, rpn_stacks);
