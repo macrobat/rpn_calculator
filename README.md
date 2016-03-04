@@ -15,19 +15,19 @@ gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
 Run the program interactively like so: ./rpn  
 There's a batch mode if you give it commandline arguments:  
 
-> user@host$ ./rpn "0 i c" "/ ~" "d 1 2 3" "+ +"
-> inf inf
-> nan
-> 1 2 3
-> 6
-> 
-> user@host$ ./rpn "1 1" "c r +" "c r +" "c r +" "c r +" "c r +" "c r +" "c r +"
-> 1 1
-> 1 2
-> 2 3
-> 3 5
-> 5 8
-> 8 13
-> 13 21
-> 21 34
+> user@host$ ./rpn "0 i c" "/ ~" "d 1 2 3" "+ +"  
+> inf inf  
+> nan  
+> 1 2 3  
+> 6  
+>  
+> user@host$ ./rpn "1 1" "c r +" "c r +" "c r +" "c r +" "c r +" "c r +" "c r +"  
+> 1 1  
+> 1 2  
+> 2 3  
+> 3 5  
+> 5 8  
+> 8 13  
+> 13 21  
+> 21 34  
 
