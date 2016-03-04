@@ -68,6 +68,7 @@ extern RPN_T logn(RPN_T x);
 extern RPN_T expe(RPN_T x);
 
 static void (*nonhistp)(stack_t *stk);
+// can undo neg and inve easily, without H_NUMS, unlike logn, expe
 extern void  neg(stack_t *stk);
 extern void inve(stack_t *stk);
 extern void copy(stack_t *stk);
@@ -126,7 +127,7 @@ static struct funrow {
     {'\0', noop, 0u, MSG    , 1, noop, "No undo history"}, // SMLU
 };
 
-// no commas after these h, n msg strings. using the same index
+// no commas after these h, n msg strings. index stays the same
 // strings get concatenated when printed, need newlines
 static const char *multiline_messages[] = {
     "rpn, Reverse Polish Notation floating point calculator\n"
@@ -137,16 +138,19 @@ static const char *multiline_messages[] = {
     "           _ undo, h this help, n numrange, q quit",
 
     // not #include'ing <float.h> for these limits
-    // redo the numbers for other types or architectures
+    // redo the numbers for other types
     "IEEE 754 says long doubles have 30 digit precision\n"
     "[ ± LDBL_MIN: ± 3.3621e-4932  ]\n"
-    "[ ± LDBL_MAX: ± 1.18973e+4932 ]", // no newline in the last string
+    "[ ± LDBL_MAX: ± 1.18973e+4932 ]", // no newline in the last strings
 };
 
 
-// global for printmsg_fresh, not for math_errror()
+// global for printmsg_fresh, not for math_error()
 static token_t last_msg = JUNK;
 static int hist_flag = 0;
+static int batchmode = 0;
+extern void toggle(int *global);
+extern void setbatchmode(void);
 
 static char *hist_sep =
 "----------------------------------------------------------------------";
@@ -155,6 +159,14 @@ static char *display_sep =
 static char *rpn_prompt = "#> ";
 
 extern void printmsg(token_t msgcode);
+extern void printmsg_fresh(token_t msgcode);
+// supress printing in batch mode
+extern void donot_printmsg(token_t msgcode);
+static void (*p_printmsg)(token_t msgcode) = printmsg;
+static void (*p_printmsg_fresh)(token_t msgcode) = printmsg_fresh;
+
+extern void dump_stack(stack_t *stack);
+
 extern void display(size_t display_len, stack_t *stks[]);
 
 // indices for the rpn_stacks array
@@ -165,15 +177,9 @@ enum {I_STK, H_NUMS, H_CMDS};
 extern int handle_input(char *inputbuf, stack_t *stks[]);
 
 
-// --- prototypes for when you write tests -------------------------------------
+// --- prototypes for when you write tests. not used in main -------------------
 
-#ifdef RPN_TEST
-
-// printmsg() declared above
-extern void printmsg_fresh(token_t msgcode);
-
-extern void toggle_hist_flag(void);
-extern void dump_stack(stack_t *stack);
+# ifdef RPN_TEST
 
 extern void display_stack(void (*print_item)(void*),
                           void *itemp,
@@ -184,9 +190,6 @@ extern void display_history(size_t items_display_limit, stack_t *stks[]);
 
 extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
-
-// display() declared
-// binary, unary, and nonhists funs declared
 
 extern void call_binary(token_t cmd, stack_t *stks[]);
 extern void call_unary(token_t cmd, stack_t *stks[]);
@@ -200,8 +203,7 @@ extern token_t math_error(void);
 extern void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]);
 
 extern token_t tokenize(char *inputbuf, RPN_T *inputnum);
-// handle_input() declared
 
-#endif // RPN_TEST
+# endif // RPN_TEST
 #endif // RPNFUNCTIONS_H
 

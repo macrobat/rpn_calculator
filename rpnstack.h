@@ -4,8 +4,6 @@
 
 /*
 rpnstack.h    a LIFO (Last In First Out) data structure
-example build:
-clang -lm  rpnstack.c rpnfunctions.c rpn.c -o rpn
 
 */
 

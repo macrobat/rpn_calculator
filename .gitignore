@@ -35,7 +35,5 @@ gmon.out
 *cache
 *.db
 
-# pics or it didn't happen. want .svg though
-*.png
-*.jpg
+# pics or it didn't happen. want .svg and .png
 

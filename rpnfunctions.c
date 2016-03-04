@@ -2,9 +2,9 @@
 #include <stdlib.h>     // strtold()
 #include <string.h>     // memmove() memcpy() for rotate()
 #include <math.h>       // for ^ powl(). link with -lm
+#include <fenv.h>       // man fenv; man math_error
 // #include <float.h>   // no. limits just for msg, works for this machine
 // #include <errno.h>   // in stack.c too. inf is better than error msgs
-#include <fenv.h>       // man fenv; man math_error
 #include "rpnstack.h"
 #include "rpnfunctions.h"
 
@@ -30,7 +30,7 @@ displays as
 when 1.23457 is subtracted:
    0: -2.11e-06
 
-enabling strtold error could be a compile -Doption
+not enabling strtold error
 #> 1e4933
 with perror():
     strtold: Numerical result out of range
@@ -70,8 +70,6 @@ does it matter that not all branches in the program are reachable?
 
 sin cos tan? constant pi p
 
-a command to reset the stacks? keep elemsz, free data, 0u other members
-
 undo could print what cmd is undone
 
 printmsg() can be spammy, have a toggle for it?
@@ -80,19 +78,10 @@ is_zero(). what can a long double zero look like? would be obviated by flex
 (not very important. false positives don't matter much here)
 0 preceded by [+-] fails to insert, interpreted as the operations [+-]
 
-flex/bison
-    would be a rewrite in stages
-        1 just tokenize()
-        2 the loop around tokenize()
-        3 handle_input() and inputbuf
-        4 replace the flow of the program
 
-readline? C-w and C-u work
+--- example input -------------------------------------
 
-one arg or file input batch mode
-
---- example input --------------------------------------------------------------
-
+at the interactive prompt:
 toggle hist. undo / stack too small for all cmds whose minsize > 0
 math errors, should repeat
 a few numbers
@@ -107,7 +96,7 @@ t     _     * + ^ / -  v    e l     ~ i c d s r u
 0 i 0 i 1.18973e+4932 i _ c ^ - -9 2 v
 0x0 -1.1e1 2.2e-2 3.3 4e400 5 6 7 8 9
 h h h n n n n
-* + ^ / - v e l ~ i c d s r u
+* + ^ / - v e l ~ i c d s r u w
 a b f g j k m o p x y z
 10 _ * _ ^ _ c _ d _ s _ r _ u _
 t
@@ -116,7 +105,7 @@ q
 */
 // --- display -----------------------------------------------------------------
 
-// checking has_msg twice, could check for not JUNK (from math_err)
+// checking has_msg a 2nd time, so it is not JUNK from math_err()
 void printmsg(token_t msgcode) {
     if (!funrows[msgcode].has_msg) { return; }
     if (funrows[msgcode].tok) { // don't want a superfluous space
@@ -140,6 +129,10 @@ void printmsg_fresh(token_t msgcode) {
     }
 }
 
+// setbatchmode() points p_printmsg_fresh and p_printmsg to this
+void donot_printmsg(token_t msgcode) {
+    return;
+}
 
 // format string RPN_FMT for long double is "%.10Lg"
 void print_num(void *itemp) {
@@ -282,13 +275,11 @@ void swap(stack_t *stk) {
 }
 
 // HTOG t
-void toggle_hist_flag(void) {
-    int *flagp = &hist_flag;
-    *flagp = !(*flagp);
+void toggle(int *global) {
+    *global = !(*global);
 }
 
-// DUMP w --print the contents of the stack in one line
-// not resetting the stacks.
+// DUMP w, print the contents of the stack in one line
 void dump_stack(stack_t *stk) {
     size_t lim = stack_size(stk);
     size_t z;
@@ -307,18 +298,18 @@ void noop(void) { return; }
 // --- roll stack up or down ---------------------------------------------------
 
 // there are atleast 2 elements when called
-void roll_stack(int direction, stack_t *stk) {
+void roll_stack(token_t direction, stack_t *stk) {
     void *tmp = malloc(stk->elemsz);
     if (tmp == NULL) {
         puts("Failed to roll stack");
         exit(EXIT_FAILURE);
     }
     size_t blocksize = (stk->index - 1u) * stk->elemsz;
-    if (direction == 1) {           // down
+    if (direction == ROLD) {                   // down
         memcpy(tmp, stk->data + blocksize, stk->elemsz);
         memmove(stk->data + stk->elemsz, stk->data, blocksize);
         memcpy(stk->data, tmp, stk->elemsz);
-    } else if (direction == -1) {   // up
+    } else if (direction == ROLU) {            // up
         memcpy(tmp, stk->data, stk->elemsz);
         memmove(stk->data, stk->data + stk->elemsz, blocksize);
         memcpy(stk->data + blocksize, tmp, stk->elemsz);
@@ -328,11 +319,11 @@ void roll_stack(int direction, stack_t *stk) {
 
 
 void rold(stack_t *stk) {
-    roll_stack(1, stk);
+    roll_stack(ROLD, stk);
 }
 
 void rolu(stack_t *stk) {
-    roll_stack(-1, stk);
+    roll_stack(ROLU, stk);
 }
 
 // --- handle input, use stacks, print msgs ------------------------------------
@@ -341,10 +332,10 @@ void rolu(stack_t *stk) {
 // only for the functions < UNDO
 void undo(stack_t *stks[]) {
     if (stack_empty(stks[H_CMDS])) {
-        printmsg_fresh(SMLU);
+        p_printmsg_fresh(SMLU);
         return;
     }
-    printmsg_fresh(UNDO);
+    p_printmsg_fresh(UNDO);
     token_t cmd;
     RPN_T tmp;
     stack_pop(&cmd, stks[H_CMDS]);
@@ -415,7 +406,7 @@ token_t math_error(void) {
 // vet cmds against stack size. print msgs, smallstack and math errors
 void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     if (stack_size(stks[I_STK]) < funrows[cmd].minsz) {
-        printmsg_fresh(SMAL);
+        p_printmsg_fresh(SMAL);
         return;
     }
     if (cmd < UNDO) {
@@ -431,22 +422,24 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     } else if (funrows[cmd].type == NONHIST) { //  ~ i c s r u
         nonhistp = funrows[cmd].fun;
         nonhistp(stks[I_STK]);
-    } else if (cmd == DISC) {     //    not using a discard()
+    } else if (cmd == DISC) {     // d  not using a discard()
         RPN_T tmp;
         stack_pop(&tmp,  stks[I_STK ]);
         stack_push(&tmp, stks[H_NUMS]);
     } else if (cmd == HTOG) {
-        toggle_hist_flag();
+        toggle(&hist_flag);
     } else if (cmd == DUMP) {
+        // w msg _before_ printing stack. below, msg is unfresh and supressed
+        p_printmsg_fresh(cmd);
         dump_stack(stks[I_STK ]);
     }
-    printmsg_fresh(cmd);
-    printmsg(math_error()); // print even if it's an old msg
+    p_printmsg_fresh(cmd);
+    p_printmsg(math_error()); // print even if it's an old msg
 }
 
 
-// 0*+^/-vel~icdsru_qhn     also used in printmsg()
-// 01234567890123456789
+// 0*+^/-vel~icsrud_wtqhn       tok chars also used in printmsg()
+// 0123456789012345678901
 // looks only for numbers and single chars
 // naively checks tok0 == '0'. not using an is_zero()
 token_t tokenize(char *inputbuf, RPN_T *inputnum) {
@@ -459,7 +452,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
         int i = 1; // 0 is NUM
         while (i < JUNK) {
             if (tok0 == funrows[i].tok) {
-                return (token_t)i;
+                return i;
             }
             i++;
         }
@@ -468,9 +461,21 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
 }
 
 
+// if main argc > 1
+void setbatchmode() {
+    int *batchmodep = &batchmode;
+    *batchmodep = 1;
+    // since these are called so many times, repoint them
+    p_printmsg_fresh = donot_printmsg;
+    p_printmsg = donot_printmsg;
+}
+
+
 int handle_input(char *inputbuf, stack_t *stks[]) {
+    if (!batchmode) {
+        fgets(inputbuf, BUFSIZ, stdin); // no error check
+    }
     RPN_T inputnum = RPN_ZERO;
-    fgets(inputbuf, BUFSIZ, stdin); // no error check
     char *chp, *str;
     token_t tok = NUM;
     for (chp = inputbuf; tok != QUIT; chp = NULL) {
