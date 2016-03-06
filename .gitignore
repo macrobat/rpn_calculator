@@ -1,12 +1,12 @@
 # this repo
 rpn
 
-# vim
-.*.swp
+# vim and backup files
 vim-session
+.*.swp
 
-# backup files
 *~
+.#*
 *.bak
 
 # object

@@ -132,10 +132,10 @@ static struct funrow {
 static const char *multiline_messages[] = {
     "rpn, Reverse Polish Notation floating point calculator\n"
     "Input number to push to the stack. hex format, inf and nan work too\n"
-    "Operators: + * - / ^ v  e l to pop number(s) and push result\n"
-    " Commands: ~ negate, i invert, c copy, d discard, s swap\n"
-    "           r rolldown, u rollup, w dump stack, t toggle history\n"
-    "           _ undo, h this help, n numrange, q quit",
+    "Operators: + * - /,    ^ power, v root, e exp, l log\n"
+    " Commands: ~ negate, i invert, c copy, d discard, s swap,\n"
+    "           r rolldown, u rollup, w dump stack, t toggle history,\n"
+    "           _ undo, h this help, n number range, q quit",
 
     // not #include'ing <float.h> for these limits
     // redo the numbers for other types
