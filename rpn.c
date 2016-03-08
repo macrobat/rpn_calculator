@@ -21,10 +21,10 @@ int main(int argc, char* argv[]) {
         int quit = 0;
         while (!quit) {
             // separator, optional history stacks, interactive stack, prompt
-            display(rpn_stacks);
+            display(&hist_flag, rpn_stacks);
             fgets(inputbuf, BUFSIZ, stdin); // get a line of input
             // prompt, read input line, operations, print messages
-            quit = handle_input(inputbuf, rpn_stacks);
+            quit = handle_input(&hist_flag, inputbuf, rpn_stacks);
         }
     } else {
         // batch mode
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
         for (i = 1; i < argc; i++) {
             strncpy(inputbuf, argv[i], BUFSIZ - 1);
             inputbuf[BUFSIZ - 1] = '\0';
-            if (handle_input(inputbuf, rpn_stacks)) {
+            if (handle_input(&hist_flag, inputbuf, rpn_stacks)) {
                 printmsg(QUIT);
                 break;
             }

@@ -188,13 +188,13 @@ void display_history(stack_t *stks[]) {
 
 
 // print: separator, optional history stacks, interactive stack, prompt
-void display(stack_t *stks[]) {
+void display(int *hist_flagp, stack_t *stks[]) {
     puts(display_sep);
-    if (hist_flag) {
+    if (*hist_flagp) {
         display_history(stks);
     }
     if (!stack_empty(stks[I_STK ])) {
-        size_t items_display_limit = 56u;
+        size_t items_display_limit = 55u;
         RPN_T num;
         display_stack(print_num, &num, items_display_limit, stks[I_STK ]);
     }
@@ -280,13 +280,14 @@ void swap(stack_t *stk) {
     stack_push(&nextnum, stk);
 }
 
+
+int hist_flag = 0; // HTOG
+
 // HTOG t
-// toggle changes hist_flag in rpnfunctions, where it's called, not from main
-// static var hist_flag will still have the same value in main,
-// where it doesn't matter
-void toggle(int *global) { // global :D
-    *global = !(*global);
+void toggle(int *flag) {
+    *flag = !(*flag);
 }
+
 
 // DUMP w, print the contents of the stack in one line
 void dump_stack(stack_t *stk) {
@@ -390,7 +391,7 @@ token_t math_error(void) {
 
 
 // vet cmds against stack size. print msgs, smallstack and math errors
-void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
+void vet_do(int *hist_flagp, RPN_T inputnum, token_t cmd, stack_t *stks[]) {
     if (stack_size(stks[I_STK]) < funrows[cmd].minsz) {
         p_printmsg_fresh(SMAL);
         return;
@@ -413,7 +414,7 @@ void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]) {
         stack_pop(&tmp,  stks[I_STK ]);
         stack_push(&tmp, stks[H_NUMS]);
     } else if (cmd == HTOG) {
-        toggle(&hist_flag);
+        toggle(hist_flagp);
     } else if (cmd == DUMP) {
         // w msg _before_ printing stack. below, msg is unfresh and supressed
         p_printmsg_fresh(cmd);
@@ -447,7 +448,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
 }
 
 
-int handle_input(char *inputbuf, stack_t *stks[]) {
+int handle_input(int *hist_flagp, char *inputbuf, stack_t *stks[]) {
     RPN_T inputnum = RPN_ZERO;
     char *chp, *str;
     token_t tok = NUM;
@@ -460,7 +461,7 @@ int handle_input(char *inputbuf, stack_t *stks[]) {
         if (tok == UNDO) {
             undo(stks);
         } else if (tok < JUNK) {
-            vet_do(inputnum, tok, stks);
+            vet_do(hist_flagp, inputnum, tok, stks);
         }
     }
     return (tok == QUIT);

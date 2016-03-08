@@ -144,13 +144,13 @@ static const char *multiline_messages[] = {
 
 // global for printmsg_fresh, not for math_error()
 static token_t last_msg = JUNK;
-static int hist_flag = 0;
-extern void toggle(int *global);
+extern int hist_flag;
+extern void toggle(int *flag);
 
 static char *hist_sep =
-"----------------------------------------------------------------------";
+    "-------------------------------------------------------------------------";
 static char *display_sep =
-"======================================================================";
+    "=========================================================================";
 static char *rpn_prompt = "#> ";
 
 extern void printmsg(token_t msgcode);
@@ -162,14 +162,14 @@ extern void (*p_printmsg_fresh)(token_t msgcode);
 
 extern void dump_stack(stack_t *stack);
 
-extern void display(stack_t *stks[]);
+extern void display(int *hist_flagp, stack_t *stks[]);
 
 // indices for the rpn_stacks array
 // 0: interactive stack
 // 1: history nums and 2: history cmds are for restoring the interactive stack
 enum {I_STK, H_NUMS, H_CMDS};
 
-extern int handle_input(char *inputbuf, stack_t *stks[]);
+extern int handle_input(int *hist_flagp, char *inputbuf, stack_t *stks[]);
 
 
 // ___ prototypes for when you write tests. not used in main ___________________
@@ -191,7 +191,10 @@ extern void call_unary(token_t cmd, stack_t *stks[]);
 
 extern void undo(stack_t *stks[]);
 extern token_t math_error(void);
-extern void vet_do(RPN_T inputnum, token_t cmd, stack_t *stks[]);
+extern void vet_do(int *hist_flagp,
+                   RPN_T inputnum,
+                   token_t cmd,
+                   stack_t *stks[]);
 
 extern token_t tokenize(char *inputbuf, RPN_T *inputnum);
 
