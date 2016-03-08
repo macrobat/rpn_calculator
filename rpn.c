@@ -3,13 +3,10 @@
 #include "rpnstack.h"
 #include "rpnfunctions.h"
 
-/*
-rpn.c
-a reverse polish notation calculator
+// rpn.c
+// a reverse polish notation calculator
+// gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
 
-gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
-
-*/
 
 const size_t items_display_limit = 60u;
 
@@ -21,18 +18,24 @@ int main(int argc, char* argv[]) {
 
     char *inputbuf = malloc(BUFSIZ); // [8192] here
 
-    if (argc == 1) {    // interactive mode
+    if (argc == 1) {
+        // interactive mode
         printmsg(HELP); // not printmsg_fresh(), let user repeat first help cmd
         int quit = 0;
         while (!quit) {
             // separator, optional history stacks, interactive stack, prompt
             display(items_display_limit, rpn_stacks);
+            fgets(inputbuf, BUFSIZ, stdin); // get a line of input
             // prompt, read input line, operations, print messages
             quit = handle_input(inputbuf, rpn_stacks);
         }
     } else {
-        // handle_input() won't use fgets. donot_printmsg()
-        setbatchmode();
+        // batch mode
+        // strncpy() instead of fgets() the inputbuf
+        // no display(). don't print anything but the stack contents
+        p_printmsg_fresh = donot_printmsg;
+        p_printmsg = donot_printmsg;
+
         int i;
         for (i = 1; i < argc; i++) {
             strncpy(inputbuf, argv[i], BUFSIZ - 1);

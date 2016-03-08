@@ -2,11 +2,8 @@
 #define RPNFUNCTIONS_H
 #include "rpnstack.h"
 
-/*
-rpnfunctions.h
-a reverse polish notation calculator
-
-*/
+// rpnfunctions.h
+// a reverse polish notation calculator
 
 #define RPN_T long double
 #define RPN_FMT "%.10Lg"
@@ -148,9 +145,7 @@ static const char *multiline_messages[] = {
 // global for printmsg_fresh, not for math_error()
 static token_t last_msg = JUNK;
 static int hist_flag = 0;
-static int batchmode = 0;
 extern void toggle(int *global);
-extern void setbatchmode(void);
 
 static char *hist_sep =
 "----------------------------------------------------------------------";
@@ -162,8 +157,8 @@ extern void printmsg(token_t msgcode);
 extern void printmsg_fresh(token_t msgcode);
 // supress printing in batch mode
 extern void donot_printmsg(token_t msgcode);
-static void (*p_printmsg)(token_t msgcode) = printmsg;
-static void (*p_printmsg_fresh)(token_t msgcode) = printmsg_fresh;
+extern void (*p_printmsg)(token_t msgcode);
+extern void (*p_printmsg_fresh)(token_t msgcode);
 
 extern void dump_stack(stack_t *stack);
 
@@ -177,7 +172,7 @@ enum {I_STK, H_NUMS, H_CMDS};
 extern int handle_input(char *inputbuf, stack_t *stks[]);
 
 
-// --- prototypes for when you write tests. not used in main -------------------
+// ___ prototypes for when you write tests. not used in main ___________________
 
 # ifdef RPN_TEST
 

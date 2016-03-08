@@ -1,10 +1,10 @@
-#include <stdlib.h>    // size_t, malloc(), exit()
-#include <string.h>    // memcpy()
+#include <stdlib.h>     // size_t, malloc(), exit()
+#include <string.h>     // memcpy()
 #include <errno.h>
-#include <stdio.h>     // print errors
+#include <stdio.h>      // print errors
 #include "rpnstack.h"
 
-//  __ helper functions ________________________________________
+// ___ helper functions ________________________________________________________
 
 void stack_error(const char *message) {
     if (errno) {
@@ -43,7 +43,7 @@ void stack_shrink_halfful(stack_t *stk) {
     stk->shrinkwhen = (size_t)(stk->nelems * stack_shrinklimit);
 }
 
-//  __ public functions ________________________________________
+// ___ public functions ________________________________________________________
 
 stack_t *stack_create(size_t sz) {
     stack_t *tmp = malloc(sizeof(*tmp));

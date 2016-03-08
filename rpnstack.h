@@ -2,10 +2,8 @@
 #define RPNSTACK_H
 #include <stdlib.h> // for size_t
 
-/*
-rpnstack.h    a LIFO (Last In First Out) data structure
-
-*/
+// rpnstack.h
+// a LIFO (Last In First Out) data structure
 
 // index is where the next push will be to, also how many elems are used
 // allocated size of stk->data is stk->elemsz * stk->nelems

@@ -11,7 +11,7 @@
 // rpnfunctions.c
 // a reverse polish notation calculator
 
-/* --- comments ----------------------------------------------------------------
+/* ___ comments ________________________________________________________________
 
 sizeof(double): 8
 [ ± DBL_MIN:  ± 2.22507e-308 ]
@@ -62,7 +62,7 @@ want math errors repeated, because the causing funs also change the stack
 
 1 e l gives 0.9999999998, must use H_NUMS
 
---- TODO / IDEAS --------------------------------------
+___ TODO / IDEAS ______________________________________
 
 root v is a visual pun on ^
 
@@ -79,7 +79,7 @@ is_zero(). what can a long double zero look like? would be obviated by flex
 0 preceded by [+-] fails to insert, interpreted as the operations [+-]
 
 
---- example input -------------------------------------
+___ example input _____________________________________
 
 at the interactive prompt:
 toggle hist. undo / stack too small for all cmds whose minsize > 0
@@ -88,13 +88,13 @@ a few numbers
 print multiline msgs, should be no msg repeats on consecutive cmds
 functions
 nonsense chars
-all branches undo, getting all the opposites on nonhists.
+all branches undo, getting all the opposites on nonhists, stack is the same?
 toggle hist
 end
 
 t     _     * + ^ / -  v    e l     ~ i c d s r u
 0 i 0 i 1.18973e+4932 i _ c ^ - -9 2 v
-0x0 -1.1e1 2.2e-2 3.3 4e400 5 6 7 8 9
+0x0 -1.1e1 2.2e-2 3.3 4e10 5 6 7 8 9 8 7 6 5 4 3 2
 h h h n n n n
 * + ^ / - v e l ~ i c d s r u w
 a b f g j k m o p x y z
@@ -103,20 +103,11 @@ t
 q
 
 */
-// --- batch, if main argc > 1 -------------------------------------------------
+// ___ display _________________________________________________________________
 
-// sets the static batchmode var in this "translation unit" (rpnfunctions)
-// it will be 1 here in rpnfunctions, but remain 0 in main
-// compare with toggle()
-void setbatchmode(void) {
-    int *batchmodep = &batchmode;
-    *batchmodep = 1;
-    // since these are called so many times, repoint them
-    p_printmsg_fresh = donot_printmsg;
-    p_printmsg = donot_printmsg;
-}
-
-// --- display -----------------------------------------------------------------
+// for interactive mode, use the vanilla print functions that do stuff
+void (*p_printmsg)(token_t msgcode) = printmsg;
+void (*p_printmsg_fresh)(token_t msgcode) = printmsg_fresh;
 
 // checking has_msg a 2nd time, so it is not JUNK from math_err()
 void printmsg(token_t msgcode) {
@@ -142,7 +133,7 @@ void printmsg_fresh(token_t msgcode) {
     }
 }
 
-// setbatchmode() points p_printmsg_fresh and p_printmsg to this
+// batch mode in main points p_printmsg_fresh and p_printmsg to this
 void donot_printmsg(token_t msgcode) {
     return;
 }
@@ -209,7 +200,7 @@ void display(size_t display_len, stack_t *stks[]) {
 }
 
 
-// --- operations * + / - ^ v e l ----------------------------------------------
+// ___ operations * + / - ^ v e l ______________________________________________
 // with long doubles: can return and use inf and nan
 
 // binary operations
@@ -251,7 +242,7 @@ RPN_T logn(RPN_T x) {
     return logl(x);
 }
 
-// --- commands ----------------------------------------------------------------
+// ___ commands ________________________________________________________________
 
 // negate, unary minus
 void neg(stack_t *stk) {
@@ -319,7 +310,7 @@ void rolu(stack_t *stk) {
 
 void noop(void) { return; }
 
-// --- handle input, use stacks, print msgs ------------------------------------
+// ___ handle input, use stacks, print msgs ____________________________________
 
 // undo is for restoring I_STK to a previous state
 // only for the functions < UNDO
@@ -455,9 +446,6 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
 
 
 int handle_input(char *inputbuf, stack_t *stks[]) {
-    if (!batchmode) {
-        fgets(inputbuf, BUFSIZ, stdin); // no error check
-    }
     RPN_T inputnum = RPN_ZERO;
     char *chp, *str;
     token_t tok = NUM;
