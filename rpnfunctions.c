@@ -169,17 +169,18 @@ void display_stack(void (*print_item)(void*),
 }
 
 
-void display_history(size_t items_display_limit, stack_t *stks[]) {
+void display_history(stack_t *stks[]) {
+    size_t hist_display_limit = 30u;
     if (!stack_empty(stks[H_NUMS])) {
         puts("history numbers:");
         RPN_T num;
-        display_stack(print_num, &num, items_display_limit, stks[H_NUMS]);
+        display_stack(print_num, &num, hist_display_limit, stks[H_NUMS]);
         puts("");
     }
     if (!stack_empty(stks[H_CMDS])) {
         puts("history cmds:");
         token_t cmd;
-        display_stack(print_cmdname, &cmd, items_display_limit, stks[H_CMDS]);
+        display_stack(print_cmdname, &cmd, hist_display_limit, stks[H_CMDS]);
         puts(hist_sep);
         puts("");
     }
@@ -187,14 +188,15 @@ void display_history(size_t items_display_limit, stack_t *stks[]) {
 
 
 // print: separator, optional history stacks, interactive stack, prompt
-void display(size_t display_len, stack_t *stks[]) {
+void display(stack_t *stks[]) {
     puts(display_sep);
     if (hist_flag) {
-        display_history(display_len, stks);
+        display_history(stks);
     }
     if (!stack_empty(stks[I_STK ])) {
+        size_t items_display_limit = 56u;
         RPN_T num;
-        display_stack(print_num, &num, display_len, stks[I_STK ]);
+        display_stack(print_num, &num, items_display_limit, stks[I_STK ]);
     }
     printf("%s", rpn_prompt); // "#> "
 }

@@ -162,7 +162,7 @@ extern void (*p_printmsg_fresh)(token_t msgcode);
 
 extern void dump_stack(stack_t *stack);
 
-extern void display(size_t display_len, stack_t *stks[]);
+extern void display(stack_t *stks[]);
 
 // indices for the rpn_stacks array
 // 0: interactive stack
@@ -181,16 +181,13 @@ extern void display_stack(void (*print_item)(void*),
                           size_t display_len,
                           stack_t *stack);
 
-extern void display_history(size_t items_display_limit, stack_t *stks[]);
+extern void display_history(stack_t *stks[]);
 
 extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
 
 extern void call_binary(token_t cmd, stack_t *stks[]);
 extern void call_unary(token_t cmd, stack_t *stks[]);
-
-extern void rold(stack_t *stk);
-extern void rolu(stack_t *stk);
 
 extern void undo(stack_t *stks[]);
 extern token_t math_error(void);

@@ -7,9 +7,6 @@
 // a reverse polish notation calculator
 // gcc rpnstack.c rpnfunctions.c rpn.c -lm -o rpn
 
-
-const size_t items_display_limit = 60u;
-
 int main(int argc, char* argv[]) {
     stack_t *rpn_stacks[3];
     rpn_stacks[I_STK ] = stack_create(sizeof(RPN_T));   // 0 interactive stack
@@ -24,7 +21,7 @@ int main(int argc, char* argv[]) {
         int quit = 0;
         while (!quit) {
             // separator, optional history stacks, interactive stack, prompt
-            display(items_display_limit, rpn_stacks);
+            display(rpn_stacks);
             fgets(inputbuf, BUFSIZ, stdin); // get a line of input
             // prompt, read input line, operations, print messages
             quit = handle_input(inputbuf, rpn_stacks);
