@@ -194,7 +194,6 @@ extern void print_cmdname(void *itemp);
 extern void call_binary(token_t cmd, stack_t *stks[]);
 extern void call_unary(token_t cmd, stack_t *stks[]);
 
-extern void roll_stack(int direction, stack_t *stk);
 extern void rold(stack_t *stk);
 extern void rolu(stack_t *stk);
 

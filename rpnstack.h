@@ -34,6 +34,7 @@ extern void stack_push(void *itemp, stack_t *stk);
 extern void  stack_pop(void *itemp, stack_t *stk);
 extern void  stack_top(void *itemp, stack_t *stk);
 extern void stack_peek(void *itemp, size_t dataindex, stack_t *stk);
+extern void stack_roll(int direction, stack_t *stk);
 
 #endif // RPNSTACK_H
 

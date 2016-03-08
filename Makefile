@@ -19,13 +19,7 @@
 # gprof rpn gmon.out > gprof_analysis.txt
 # make profiling_clean # to remove generated files
 
-
-# rpn_test not that useful atm. keep tests in their own folder ./tests_rpn/
-#rpn_test: rpnstack.o rpnfunctions.c rpnfunctions.h.gch rpn.c
-	#$(CC) -o $@ -lm rpnstack.o rpnfunctions.c rpn.c -DRPN_TEST
-
-# precompiled headers (*.h.gch) don't save time in this build, just fun to have
-# clang precompiled headers are ~ an order of magnitude smaller than gcc ones
+# precompiled headers (*.h.gch) don't save time in this build
 
 
 CC = clang -g

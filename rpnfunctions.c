@@ -72,7 +72,7 @@ sin cos tan? constant pi p
 
 undo could print what cmd is undone
 
-printmsg() can be spammy, have a toggle for it?
+printmsg() can be spammy, have a toggle for it? run in batchmode
 
 is_zero(). what can a long double zero look like? would be obviated by flex
 (not very important. false positives don't matter much here)
@@ -103,6 +103,19 @@ t
 q
 
 */
+// --- batch, if main argc > 1 -------------------------------------------------
+
+// sets the static batchmode var in this "translation unit" (rpnfunctions)
+// it will be 1 here in rpnfunctions, but remain 0 in main
+// compare with toggle()
+void setbatchmode(void) {
+    int *batchmodep = &batchmode;
+    *batchmodep = 1;
+    // since these are called so many times, repoint them
+    p_printmsg_fresh = donot_printmsg;
+    p_printmsg = donot_printmsg;
+}
+
 // --- display -----------------------------------------------------------------
 
 // checking has_msg a 2nd time, so it is not JUNK from math_err()
@@ -275,7 +288,10 @@ void swap(stack_t *stk) {
 }
 
 // HTOG t
-void toggle(int *global) {
+// toggle changes hist_flag in rpnfunctions, where it's called, not from main
+// static var hist_flag will still have the same value in main,
+// where it doesn't matter
+void toggle(int *global) { // global :D
     *global = !(*global);
 }
 
@@ -292,39 +308,16 @@ void dump_stack(stack_t *stk) {
     puts("");
 }
 
-void noop(void) { return; }
-
-
-// --- roll stack up or down ---------------------------------------------------
-
-// there are atleast 2 elements when called
-void roll_stack(token_t direction, stack_t *stk) {
-    void *tmp = malloc(stk->elemsz);
-    if (tmp == NULL) {
-        puts("Failed to roll stack");
-        exit(EXIT_FAILURE);
-    }
-    size_t blocksize = (stk->index - 1u) * stk->elemsz;
-    if (direction == ROLD) {                   // down
-        memcpy(tmp, stk->data + blocksize, stk->elemsz);
-        memmove(stk->data + stk->elemsz, stk->data, blocksize);
-        memcpy(stk->data, tmp, stk->elemsz);
-    } else if (direction == ROLU) {            // up
-        memcpy(tmp, stk->data, stk->elemsz);
-        memmove(stk->data, stk->data + stk->elemsz, blocksize);
-        memcpy(stk->data + blocksize, tmp, stk->elemsz);
-     } // else fail silently
-    free(tmp);
-}
-
-
+// roll stack up or down
 void rold(stack_t *stk) {
-    roll_stack(ROLD, stk);
+    stack_roll(1, stk);
 }
 
 void rolu(stack_t *stk) {
-    roll_stack(ROLU, stk);
+    stack_roll(-1, stk);
 }
+
+void noop(void) { return; }
 
 // --- handle input, use stacks, print msgs ------------------------------------
 
@@ -458,16 +451,6 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
         }
     }
     return JUNK;
-}
-
-
-// if main argc > 1
-void setbatchmode() {
-    int *batchmodep = &batchmode;
-    *batchmodep = 1;
-    // since these are called so many times, repoint them
-    p_printmsg_fresh = donot_printmsg;
-    p_printmsg = donot_printmsg;
 }
 
 
