@@ -75,7 +75,6 @@ extern void rolu(stack_t *stk);
 
 extern void noop(void);
 
-// harmonize these "types" with cases in vet_do() and undo()
 enum {BINARY, UNARY, NONHIST, NONOP, MSG, OTHER};
 
 static struct funrow {
@@ -106,6 +105,7 @@ static struct funrow {
     { 's', swap, 2u, NONHIST, 1, swap, "swap"           }, // SWAP
     { 'r', rold, 2u, NONHIST, 1, rolu, "rolldown"       }, // ROLD
     { 'u', rolu, 2u, NONHIST, 1, rold, "rollup"         }, // ROLU
+
     { 'd', noop, 1u, OTHER  , 1, noop, "discard"        }, // DISC
 
     { '_', noop, 0u, NONOP  , 1, noop, "undo"           }, // UNDO
@@ -122,7 +122,8 @@ static struct funrow {
     {'\0', noop, 0u, MSG    , 1, noop, "Invalid num"    }, // INAN
     {'\0', noop, 0u, MSG    , 1, noop, "Stack too small"}, // SMAL
     {'\0', noop, 0u, MSG    , 1, noop, "No undo history"}, // SMLU
-};
+}; // wall-to-wall padding
+
 
 // no commas after these h, n msg strings. index stays the same
 // strings get concatenated when printed, need newlines
@@ -142,11 +143,6 @@ static const char *multiline_messages[] = {
 };
 
 
-// global for printmsg_fresh, not for math_error()
-static token_t last_msg = JUNK;
-extern int hist_flag;
-extern void toggle(int *flag);
-
 static char *hist_sep =
     "-------------------------------------------------------------------------";
 static char *display_sep =
@@ -154,11 +150,12 @@ static char *display_sep =
 static char *rpn_prompt = "#> ";
 
 extern void printmsg(token_t msgcode);
-extern void printmsg_fresh(token_t msgcode);
+extern void printmsg_fresh(token_t msgcode, token_t *last_msgp);
 // supress printing in batch mode
 extern void donot_printmsg(token_t msgcode);
+extern void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp);
 extern void (*p_printmsg)(token_t msgcode);
-extern void (*p_printmsg_fresh)(token_t msgcode);
+extern void (*p_printmsg_fresh)(token_t msgcode, token_t *last_msgp);
 
 extern void dump_stack(stack_t *stack);
 
@@ -169,7 +166,7 @@ extern void display(int *hist_flagp, stack_t *stks[]);
 // 1: history nums and 2: history cmds are for restoring the interactive stack
 enum {I_STK, H_NUMS, H_CMDS};
 
-extern int handle_input(int *hist_flagp, char *inputbuf, stack_t *stks[]);
+extern int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, stack_t *stks[]);
 
 
 // ___ prototypes for when you write tests. not used in main ___________________
@@ -186,12 +183,15 @@ extern void display_history(stack_t *stks[]);
 extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
 
+extern void toggle(int *flag);
+
 extern void call_binary(token_t cmd, stack_t *stks[]);
 extern void call_unary(token_t cmd, stack_t *stks[]);
 
-extern void undo(stack_t *stks[]);
+extern void undo(token_t *last_msgp, stack_t *stks[]);
 extern token_t math_error(void);
 extern void vet_do(int *hist_flagp,
+                   token_t *last_msgp,
                    RPN_T inputnum,
                    token_t cmd,
                    stack_t *stks[]);

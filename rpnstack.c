@@ -121,11 +121,11 @@ void stack_roll(int direction, stack_t *stk) {
         stack_error("Failed to roll stack");
     }
     size_t blocksize = (stk->index - 1u) * stk->elemsz;
-    if (direction == 1) {                   // down
+    if (direction == 1) {                   // down ROLD
         memcpy(tmp, stk->data + blocksize, stk->elemsz);
         memmove(stk->data + stk->elemsz, stk->data, blocksize);
         memcpy(stk->data, tmp, stk->elemsz);
-    } else if (direction == -1) {           // up
+    } else if (direction == -1) {           // up   ROLU
         memcpy(tmp, stk->data, stk->elemsz);
         memmove(stk->data, stk->data + stk->elemsz, blocksize);
         memcpy(stk->data + blocksize, tmp, stk->elemsz);

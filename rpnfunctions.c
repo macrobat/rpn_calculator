@@ -107,7 +107,7 @@ q
 
 // for interactive mode, use the vanilla print functions that do stuff
 void (*p_printmsg)(token_t msgcode) = printmsg;
-void (*p_printmsg_fresh)(token_t msgcode) = printmsg_fresh;
+void (*p_printmsg_fresh)(token_t msgcode, token_t *last_msgp) = printmsg_fresh;
 
 // checking has_msg a 2nd time, so it is not JUNK from math_err()
 void printmsg(token_t msgcode) {
@@ -122,19 +122,21 @@ void printmsg(token_t msgcode) {
 }
 
 // wrapper guarantees freshness. return if seal is broken
-void printmsg_fresh(token_t msgcode) {
+void printmsg_fresh(token_t msgcode, token_t *last_msgp) {
     if (!funrows[msgcode].has_msg) { return; }
-    if (msgcode == last_msg) {
+    if (msgcode == *last_msgp) {
         return;
     } else {
-        token_t *fresh_msg = &last_msg;
-        *fresh_msg = msgcode;
+        *last_msgp = msgcode;
         printmsg(msgcode);
     }
 }
 
-// batch mode in main points p_printmsg_fresh and p_printmsg to this
+// batch mode in main points p_printmsg and p_printmsg_fresh to this
 void donot_printmsg(token_t msgcode) {
+    return;
+}
+void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp) {
     return;
 }
 
@@ -280,14 +282,10 @@ void swap(stack_t *stk) {
     stack_push(&nextnum, stk);
 }
 
-
-int hist_flag = 0; // HTOG
-
 // HTOG t
 void toggle(int *flag) {
     *flag = !(*flag);
 }
-
 
 // DUMP w, print the contents of the stack in one line
 void dump_stack(stack_t *stk) {
@@ -317,12 +315,12 @@ void noop(void) { return; }
 
 // undo is for restoring I_STK to a previous state
 // only for the functions < UNDO
-void undo(stack_t *stks[]) {
+void undo(token_t *last_msgp, stack_t *stks[]) {
     if (stack_empty(stks[H_CMDS])) {
-        p_printmsg_fresh(SMLU);
+        p_printmsg_fresh(SMLU, last_msgp);
         return;
     }
-    p_printmsg_fresh(UNDO);
+    p_printmsg_fresh(UNDO, last_msgp);
     token_t cmd;
     RPN_T tmp;
     stack_pop(&cmd, stks[H_CMDS]);
@@ -366,15 +364,16 @@ void call_binary(token_t cmd, stack_t *stks[]) {
 
 
 void call_unary(token_t cmd, stack_t *stks[]) {
-        RPN_T operand;
-        stack_pop(&operand,  stks[I_STK ]);
-        stack_push(&operand, stks[H_NUMS]);
-        unaryp = funrows[cmd].fun;
-        RPN_T result = unaryp(operand);
-        stack_push(&result,  stks[I_STK ]);
+    RPN_T operand;
+    stack_pop(&operand,  stks[I_STK ]);
+    stack_push(&operand, stks[H_NUMS]);
+    unaryp = funrows[cmd].fun;
+    RPN_T result = unaryp(operand);
+    stack_push(&result,  stks[I_STK ]);
 }
 
 
+// feclearexcept(FE_ALL_EXCEPT) previously in vet_do()
 token_t math_error(void) {
     if (fetestexcept(FE_DIVBYZERO)) {
         return DBYZ; // 0 i
@@ -391,11 +390,17 @@ token_t math_error(void) {
 
 
 // vet cmds against stack size. print msgs, smallstack and math errors
-void vet_do(int *hist_flagp, RPN_T inputnum, token_t cmd, stack_t *stks[]) {
+void vet_do(int *hist_flagp,
+            token_t *last_msgp,
+            RPN_T inputnum,
+            token_t cmd,
+            stack_t *stks[])
+{
     if (stack_size(stks[I_STK]) < funrows[cmd].minsz) {
-        p_printmsg_fresh(SMAL);
+        p_printmsg_fresh(SMAL, last_msgp);
         return;
     }
+    //if (funrows[cmd].type != NONOP) { // is not  _ w t q h n   (< UNDO)
     if (cmd < UNDO) {
         stack_push(&cmd, stks[H_CMDS]);
     }
@@ -417,10 +422,10 @@ void vet_do(int *hist_flagp, RPN_T inputnum, token_t cmd, stack_t *stks[]) {
         toggle(hist_flagp);
     } else if (cmd == DUMP) {
         // w msg _before_ printing stack. below, msg is unfresh and supressed
-        p_printmsg_fresh(cmd);
+        p_printmsg_fresh(cmd, last_msgp);
         dump_stack(stks[I_STK ]);
     }
-    p_printmsg_fresh(cmd);
+    p_printmsg_fresh(cmd, last_msgp);
     p_printmsg(math_error()); // print even if it's an old msg
 }
 
@@ -436,7 +441,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
         // not 0.0L, so it's a number || the input 0.0L comes from a '0'
         return NUM;
     } else {
-        int i = 1; // 0 is NUM
+        int i = 1; // assuming 0 is NUM
         while (i < JUNK) {
             if (tok0 == funrows[i].tok) {
                 return i;
@@ -448,7 +453,7 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
 }
 
 
-int handle_input(int *hist_flagp, char *inputbuf, stack_t *stks[]) {
+int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, stack_t *stks[]) {
     RPN_T inputnum = RPN_ZERO;
     char *chp, *str;
     token_t tok = NUM;
@@ -459,9 +464,9 @@ int handle_input(int *hist_flagp, char *inputbuf, stack_t *stks[]) {
         }
         tok = tokenize(str, &inputnum);
         if (tok == UNDO) {
-            undo(stks);
+            undo(last_msgp, stks);
         } else if (tok < JUNK) {
-            vet_do(hist_flagp, inputnum, tok, stks);
+            vet_do(hist_flagp, last_msgp, inputnum, tok, stks);
         }
     }
     return (tok == QUIT);

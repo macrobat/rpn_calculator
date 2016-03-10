@@ -15,6 +15,10 @@ int main(int argc, char* argv[]) {
 
     char *inputbuf = malloc(BUFSIZ); // [8192] here
 
+    // for printmsg_fresh, not for math_error()
+    token_t last_msg = JUNK;
+    int hist_flag = 0; // HTOG t
+
     if (argc == 1) {
         // interactive mode
         printmsg(HELP); // not printmsg_fresh(), let user repeat first help cmd
@@ -24,20 +28,20 @@ int main(int argc, char* argv[]) {
             display(&hist_flag, rpn_stacks);
             fgets(inputbuf, BUFSIZ, stdin); // get a line of input
             // prompt, read input line, operations, print messages
-            quit = handle_input(&hist_flag, inputbuf, rpn_stacks);
+            quit = handle_input(&hist_flag, &last_msg, inputbuf, rpn_stacks);
         }
     } else {
         // batch mode
-        // strncpy() instead of fgets() the inputbuf
+        // strncpy() instead of fgets() fills the inputbuf
         // no display(). don't print anything but the stack contents
-        p_printmsg_fresh = donot_printmsg;
+        p_printmsg_fresh = donot_printmsg_fresh;
         p_printmsg = donot_printmsg;
 
         int i;
         for (i = 1; i < argc; i++) {
             strncpy(inputbuf, argv[i], BUFSIZ - 1);
             inputbuf[BUFSIZ - 1] = '\0';
-            if (handle_input(&hist_flag, inputbuf, rpn_stacks)) {
+            if (handle_input(&hist_flag, &last_msg, inputbuf, rpn_stacks)) {
                 printmsg(QUIT);
                 break;
             }
