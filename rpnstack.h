@@ -16,7 +16,8 @@ typedef struct {
     size_t shrinkwhen;
 } stack_t;
 
-static const double stack_shrinklimit     = 0.45; // shrink when 45% full
+// for hysteresis sake
+static const double stack_shrinklimit     = 0.43; // shrink when 43% full
 // static const double stack_shrinkfactor = 0.5 ;
 // static const double stack_growfactor   = 2.0 ;
 

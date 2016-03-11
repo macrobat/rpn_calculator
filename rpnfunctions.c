@@ -103,7 +103,33 @@ t
 q
 
 */
-// ___ display _________________________________________________________________
+// ___ convenience for RPN_T stacks ____________________________________________
+
+RPN_T pop(stack_t *stk) {
+    RPN_T tmp;
+    stack_pop(&tmp, stk);
+    return tmp;
+}
+
+RPN_T top(stack_t *stk) {
+    RPN_T tmp;
+    stack_top(&tmp, stk);
+    return tmp;
+}
+
+void push(RPN_T item, stack_t *stk) {
+    RPN_T tmp = item;
+    stack_push(&tmp, stk);
+}
+
+// returns the item
+RPN_T transfer(stack_t *src_stk, stack_t *dest_stk) {
+    RPN_T tmp = pop(src_stk);
+    push(tmp, dest_stk);
+    return tmp;
+}
+
+// ___ display, print __________________________________________________________
 
 // for interactive mode, use the vanilla print functions that do stuff
 void (*p_printmsg)(token_t msgcode) = printmsg;
@@ -132,13 +158,9 @@ void printmsg_fresh(token_t msgcode, token_t *last_msgp) {
     }
 }
 
-// batch mode in main points p_printmsg and p_printmsg_fresh to this
-void donot_printmsg(token_t msgcode) {
-    return;
-}
-void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp) {
-    return;
-}
+// batch mode in main points p_printmsg and p_printmsg_fresh to these
+void donot_printmsg(token_t msgcode) { return; }
+void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp) { return; }
 
 // format string RPN_FMT for long double is "%.10Lg"
 void print_num(void *itemp) {
@@ -150,7 +172,7 @@ void print_cmdname(void *itemp) {
 }
 
 
-// prints the stack from the bottom to the top. display_len set in rpn.c
+// prints the stack from the bottom to the top
 void display_stack(void (*print_item)(void*),
                    void *itemp,
                    size_t display_len,
@@ -250,36 +272,25 @@ RPN_T logn(RPN_T x) {
 
 // negate, unary minus
 void neg(stack_t *stk) {
-    RPN_T tmp;
-    stack_pop(&tmp, stk);
-    tmp = - tmp;
-    stack_push(&tmp, stk);
+    push(-pop(stk), stk);
 }
 
 // invert
 void inve(stack_t *stk) {
-    RPN_T tmp;
-    stack_pop(&tmp, stk);
-    tmp = RPN_ONE / tmp;
-    stack_push(&tmp, stk);
+    push(RPN_ONE / pop(stk), stk);
 }
 
 void copy(stack_t *stk) {
-    RPN_T tmp;
-    stack_top(&tmp, stk);
-    stack_push(&tmp, stk);
+    push(top(stk), stk);
 }
 
-// DISC d discard would be just a pop
-// and then you'd have to push to H_NUMS anyway
+// DISC d discard would have typesig like call_binary
 
 void swap(stack_t *stk) {
-    RPN_T topnum;
-    RPN_T nextnum;
-    stack_pop(&topnum, stk);
-    stack_pop(&nextnum, stk);
-    stack_push(&topnum, stk);
-    stack_push(&nextnum, stk);
+    RPN_T topnum = pop(stk);
+    RPN_T nextnum = pop(stk);
+    push(topnum, stk);
+    push(nextnum, stk);
 }
 
 // HTOG t
@@ -322,54 +333,39 @@ void undo(token_t *last_msgp, stack_t *stks[]) {
     }
     p_printmsg_fresh(UNDO, last_msgp);
     token_t cmd;
-    RPN_T tmp;
     stack_pop(&cmd, stks[H_CMDS]);
     if (cmd == NUM || cmd == COPY) { // testing COPY before other nonhists
-        stack_pop(&tmp, stks[I_STK]);
+        pop(stks[I_STK]);
     } else if (funrows[cmd].type == BINARY) { //  * + ^ / - v
-        RPN_T topnum;
-        RPN_T nextnum;
-        stack_pop(&tmp,      stks[I_STK ]);
-        stack_pop(&topnum,   stks[H_NUMS]);
-        stack_pop(&nextnum,  stks[H_NUMS]);
-        stack_push(&topnum,  stks[I_STK ]);
-        stack_push(&nextnum, stks[I_STK ]);
+        pop(stks[I_STK ]);
+        transfer(stks[H_NUMS], stks[I_STK ]);
+        transfer(stks[H_NUMS], stks[I_STK ]);
     } else if (funrows[cmd].type == UNARY) {  // e l
-        stack_pop(&tmp,      stks[I_STK ]);
-        stack_pop(&tmp,      stks[H_NUMS]);
-        stack_push(&tmp,     stks[I_STK ]);
+        pop(stks[I_STK ]);
+        transfer(stks[H_NUMS], stks[I_STK ]);
     } else if (funrows[cmd].type == NONHIST && cmd != COPY) {
         // ~ i s r u. disc() as anti for copy() wouldn't be useful
         nonhistp = funrows[cmd].anti;
         nonhistp(stks[I_STK]);
     } else if (cmd == DISC) {
-        stack_pop(&tmp, stks[H_NUMS]);
-        stack_push(&tmp, stks[I_STK]);
+        transfer(stks[H_NUMS], stks[I_STK ]);
     }
 }
 
 
 // H_NUMS will have numbers in pairwise reverse order of I_STK
 void call_binary(token_t cmd, stack_t *stks[]) {
-    RPN_T topnum;
-    RPN_T nextnum;
-    stack_pop(&topnum,   stks[I_STK ]);
-    stack_pop(&nextnum,  stks[I_STK ]);
-    stack_push(&topnum,  stks[H_NUMS]);
-    stack_push(&nextnum, stks[H_NUMS]);
+    RPN_T topnum = transfer(stks[I_STK ], stks[H_NUMS]);
+    RPN_T nextnum = transfer(stks[I_STK ], stks[H_NUMS]);
     binaryp = funrows[cmd].fun;
-    RPN_T resnum = binaryp(nextnum, topnum); // arg order is important
-    stack_push(&resnum,  stks[I_STK ]);
+    push(binaryp(nextnum, topnum), stks[I_STK ]); // arg order is important
 }
 
 
 void call_unary(token_t cmd, stack_t *stks[]) {
-    RPN_T operand;
-    stack_pop(&operand,  stks[I_STK ]);
-    stack_push(&operand, stks[H_NUMS]);
+    RPN_T operand = transfer(stks[I_STK ], stks[H_NUMS]);
     unaryp = funrows[cmd].fun;
-    RPN_T result = unaryp(operand);
-    stack_push(&result,  stks[I_STK ]);
+    push(unaryp(operand), stks[I_STK ]);
 }
 
 
@@ -400,8 +396,7 @@ void vet_do(int *hist_flagp,
         p_printmsg_fresh(SMAL, last_msgp);
         return;
     }
-    //if (funrows[cmd].type != NONOP) { // is not  _ w t q h n   (< UNDO)
-    if (cmd < UNDO) {
+    if (funrows[cmd].type != NONOP) { // is not  _ w t q h n   (< UNDO)
         stack_push(&cmd, stks[H_CMDS]);
     }
     feclearexcept(FE_ALL_EXCEPT);
@@ -415,9 +410,7 @@ void vet_do(int *hist_flagp,
         nonhistp = funrows[cmd].fun;
         nonhistp(stks[I_STK]);
     } else if (cmd == DISC) {     // d  not using a discard()
-        RPN_T tmp;
-        stack_pop(&tmp,  stks[I_STK ]);
-        stack_push(&tmp, stks[H_NUMS]);
+        transfer(stks[I_STK ], stks[H_NUMS]);
     } else if (cmd == HTOG) {
         toggle(hist_flagp);
     } else if (cmd == DUMP) {
@@ -453,7 +446,11 @@ token_t tokenize(char *inputbuf, RPN_T *inputnum) {
 }
 
 
-int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, stack_t *stks[]) {
+int handle_input(int *hist_flagp,
+                 token_t *last_msgp,
+                 char *inputbuf,
+                 stack_t *stks[])
+{
     RPN_T inputnum = RPN_ZERO;
     char *chp, *str;
     token_t tok = NUM;

@@ -7,9 +7,8 @@
 
 #define RPN_T long double
 #define RPN_FMT "%.10Lg"
-#define RPN_ZERO 0.0L // easier to change types
+#define RPN_ZERO 0.0L
 #define RPN_ONE  1.0L
-
 
 // subsets of these enums have different roles
 // aspects: tokens, messages, functions and their attributes
@@ -172,6 +171,12 @@ extern int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, sta
 // ___ prototypes for when you write tests. not used in main ___________________
 
 # ifdef RPN_TEST
+
+// convenience, not for H_CMDS
+extern RPN_T pop(stack_t *stk);
+extern RPN_T top(stack_t *stk);
+extern void push(RPN_T item, stack_t *stk);
+extern RPN_T transfer(stack_t *src_stk, stack_t *dest_stk);
 
 extern void display_stack(void (*print_item)(void*),
                           void *itemp,
