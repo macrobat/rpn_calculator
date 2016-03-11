@@ -64,7 +64,7 @@ extern RPN_T logn(RPN_T x);
 extern RPN_T expe(RPN_T x);
 
 static void (*nonhistp)(stack_t *stk);
-// can undo neg and inve easily, without H_NUMS, unlike logn, expe
+// can undo neg and inve easily without H_NUMS, unlike logn, expe
 extern void  neg(stack_t *stk);
 extern void inve(stack_t *stk);
 extern void copy(stack_t *stk);
@@ -74,53 +74,66 @@ extern void rolu(stack_t *stk);
 
 extern void noop(void);
 
-enum {BINARY, UNARY, NONHIST, NONOP, MSG, OTHER};
+
+// harmonizing these "categories" with conditionals in vet_do()
+extern void binary(token_t cmd, stack_t *stks[]);
+extern void unary(token_t cmd, stack_t *stks[]);
+extern void nonhist(token_t cmd, stack_t *stks[]);
+// more padding noops to complicate the program and make it longer
+extern void nonop(token_t cmd, stack_t *stks[]);
+extern void msg(token_t cmd, stack_t *stks[]);
+extern void other(token_t cmd, stack_t *stks[]);
+
+// nonhist and nonop need better names. DISCARD would be its own type_t
+typedef enum {BINARY, UNARY, NONHIST, NONOP, OTHER, MSG} type_t;
+static void (*callfun[])(token_t cmd, stack_t *stks[]) = {
+              binary, unary, nonhist, nonop, other, msg};
 
 static struct funrow {
     char tok;
     void *fun;
     size_t minsz;
-    int type;
+    type_t type;
     int has_msg;
-    void *anti;
+    token_t anti;
     char *name;
 } funrows[] = {
 //    tok   fun  sz  type   msg? anti  name / msg
-    {'\0', noop, 0u, OTHER  , 0, noop, "number"         }, //  NUM
+    {'\0', noop, 0u, OTHER  , 0, JUNK, "number"         }, //  NUM
 
-    { '*',  mul, 2u, BINARY , 0, noop, "multiply"       }, //  MUL
-    { '+',  add, 2u, BINARY , 0, noop, "add"            }, //  ADD
-    { '^', powe, 2u, BINARY , 0, noop, "power"          }, // POWE
-    { '/', divi, 2u, BINARY , 0, noop, "divide"         }, // DIVI
-    { '-',  sub, 2u, BINARY , 0, noop, "subtract"       }, //  SUB
-    { 'v', root, 2u, BINARY , 1, noop, "root"           }, // ROOT
+    { '*',  mul, 2u, BINARY , 0, JUNK, "multiply"       }, //  MUL
+    { '+',  add, 2u, BINARY , 0, JUNK, "add"            }, //  ADD
+    { '^', powe, 2u, BINARY , 0, JUNK, "power"          }, // POWE
+    { '/', divi, 2u, BINARY , 0, JUNK, "divide"         }, // DIVI
+    { '-',  sub, 2u, BINARY , 0, JUNK, "subtract"       }, //  SUB
+    { 'v', root, 2u, BINARY , 1, JUNK, "root"           }, // ROOT
 
-    { 'l', logn, 1u, UNARY  , 1, noop, "log"            }, // LOGN
-    { 'e', expe, 1u, UNARY  , 1, noop, "exp"            }, // EXPE
+    { 'l', logn, 1u, UNARY  , 1, JUNK, "log"            }, // LOGN
+    { 'e', expe, 1u, UNARY  , 1, JUNK, "exp"            }, // EXPE
 
-    { '~', neg , 1u, NONHIST, 1, neg , "negate"         }, //  NEG
-    { 'i', inve, 1u, NONHIST, 1, inve, "invert"         }, // INVE
-    { 'c', copy, 1u, NONHIST, 1, noop, "copy"           }, // COPY
-    { 's', swap, 2u, NONHIST, 1, swap, "swap"           }, // SWAP
-    { 'r', rold, 2u, NONHIST, 1, rolu, "rolldown"       }, // ROLD
-    { 'u', rolu, 2u, NONHIST, 1, rold, "rollup"         }, // ROLU
+    { '~', neg , 1u, NONHIST, 1, NEG , "negate"         }, //  NEG
+    { 'i', inve, 1u, NONHIST, 1, INVE, "invert"         }, // INVE
+    { 'c', copy, 1u, NONHIST, 1, JUNK, "copy"           }, // COPY
+    { 's', swap, 2u, NONHIST, 1, SWAP, "swap"           }, // SWAP
+    { 'r', rold, 2u, NONHIST, 1, ROLU, "rolldown"       }, // ROLD
+    { 'u', rolu, 2u, NONHIST, 1, ROLD, "rollup"         }, // ROLU
 
-    { 'd', noop, 1u, OTHER  , 1, noop, "discard"        }, // DISC
+    { 'd', noop, 1u, OTHER  , 1, JUNK, "discard"        }, // DISC
 
-    { '_', noop, 0u, NONOP  , 1, noop, "undo"           }, // UNDO
-    { 'w', noop, 1u, NONOP  , 1, noop, "dumpstack"      }, // DUMP
-    { 't', noop, 0u, NONOP  , 1, noop, "togglehist"     }, // HTOG
-    { 'q', noop, 0u, NONOP  , 1, noop, "quit"           }, // QUIT
-    { 'h', noop, 0u, NONOP  , 1, noop, "help"           }, // HELP
-    { 'n', noop, 0u, NONOP  , 1, noop, "numberrange"    }, // RANG
+    { '_', noop, 0u, NONOP  , 1, JUNK, "undo"           }, // UNDO
+    { 'w', noop, 1u, NONOP  , 1, JUNK, "dumpstack"      }, // DUMP
+    { 't', noop, 0u, NONOP  , 1, JUNK, "togglehist"     }, // HTOG
+    { 'q', noop, 0u, NONOP  , 1, JUNK, "quit"           }, // QUIT
+    { 'h', noop, 0u, NONOP  , 1, JUNK, "help"           }, // HELP
+    { 'n', noop, 0u, NONOP  , 1, JUNK, "numberrange"    }, // RANG
 
-    {'\0', noop, 0u, OTHER  , 0, noop, "Junk"           }, // JUNK
-    {'\0', noop, 0u, MSG    , 1, noop, "Divide by zero" }, // DBYZ
-    {'\0', noop, 0u, MSG    , 1, noop, "Overflow"       }, // OFLW
-    {'\0', noop, 0u, MSG    , 1, noop, "Underflow"      }, // UFLW
-    {'\0', noop, 0u, MSG    , 1, noop, "Invalid num"    }, // INAN
-    {'\0', noop, 0u, MSG    , 1, noop, "Stack too small"}, // SMAL
-    {'\0', noop, 0u, MSG    , 1, noop, "No undo history"}, // SMLU
+    {'\0', noop, 0u, OTHER  , 0, JUNK, "Junk"           }, // JUNK
+    {'\0', noop, 0u, MSG    , 1, JUNK, "Divide by zero" }, // DBYZ
+    {'\0', noop, 0u, MSG    , 1, JUNK, "Overflow"       }, // OFLW
+    {'\0', noop, 0u, MSG    , 1, JUNK, "Underflow"      }, // UFLW
+    {'\0', noop, 0u, MSG    , 1, JUNK, "Invalid num"    }, // INAN
+    {'\0', noop, 0u, MSG    , 1, JUNK, "Stack too small"}, // SMAL
+    {'\0', noop, 0u, MSG    , 1, JUNK, "No undo history"}, // SMLU
 }; // wall-to-wall padding
 
 
@@ -189,9 +202,6 @@ extern void print_num(void *itemp);
 extern void print_cmdname(void *itemp);
 
 extern void toggle(int *flag);
-
-extern void call_binary(token_t cmd, stack_t *stks[]);
-extern void call_unary(token_t cmd, stack_t *stks[]);
 
 extern void undo(token_t *last_msgp, stack_t *stks[]);
 extern token_t math_error(void);

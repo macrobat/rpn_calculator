@@ -105,6 +105,7 @@ q
 */
 // ___ convenience for RPN_T stacks ____________________________________________
 
+// not a full abstraction layer
 RPN_T pop(stack_t *stk) {
     RPN_T tmp;
     stack_pop(&tmp, stk);
@@ -122,7 +123,7 @@ void push(RPN_T item, stack_t *stk) {
     stack_push(&tmp, stk);
 }
 
-// returns the item
+// moves _and_ returns the item. opposite arg order from memmove
 RPN_T transfer(stack_t *src_stk, stack_t *dest_stk) {
     RPN_T tmp = pop(src_stk);
     push(tmp, dest_stk);
@@ -345,8 +346,7 @@ void undo(token_t *last_msgp, stack_t *stks[]) {
         transfer(stks[H_NUMS], stks[I_STK ]);
     } else if (funrows[cmd].type == NONHIST && cmd != COPY) {
         // ~ i s r u. disc() as anti for copy() wouldn't be useful
-        nonhistp = funrows[cmd].anti;
-        nonhistp(stks[I_STK]);
+        nonhist(funrows[cmd].anti, stks);
     } else if (cmd == DISC) {
         transfer(stks[H_NUMS], stks[I_STK ]);
     }
@@ -354,7 +354,7 @@ void undo(token_t *last_msgp, stack_t *stks[]) {
 
 
 // H_NUMS will have numbers in pairwise reverse order of I_STK
-void call_binary(token_t cmd, stack_t *stks[]) {
+void binary(token_t cmd, stack_t *stks[]) {
     RPN_T topnum = transfer(stks[I_STK ], stks[H_NUMS]);
     RPN_T nextnum = transfer(stks[I_STK ], stks[H_NUMS]);
     binaryp = funrows[cmd].fun;
@@ -362,11 +362,22 @@ void call_binary(token_t cmd, stack_t *stks[]) {
 }
 
 
-void call_unary(token_t cmd, stack_t *stks[]) {
+void unary(token_t cmd, stack_t *stks[]) {
     RPN_T operand = transfer(stks[I_STK ], stks[H_NUMS]);
     unaryp = funrows[cmd].fun;
     push(unaryp(operand), stks[I_STK ]);
 }
+
+// just need I_STK, but using *stks[] to harmonize with other functions
+void nonhist(token_t cmd, stack_t *stks[]) {
+    nonhistp = funrows[cmd].fun;
+    nonhistp(stks[I_STK]);
+}
+
+// filler
+void nonop (token_t cmd, stack_t *stks[]) { return; }
+void other (token_t cmd, stack_t *stks[]) { return; }
+void msg   (token_t cmd, stack_t *stks[]) { return; }
 
 
 // feclearexcept(FE_ALL_EXCEPT) previously in vet_do()
@@ -402,13 +413,8 @@ void vet_do(int *hist_flagp,
     feclearexcept(FE_ALL_EXCEPT);
     if (cmd == NUM) {
         stack_push(&inputnum, stks[I_STK]);
-    } else if (funrows[cmd].type == BINARY) {  //  * + ^ / - v
-        call_binary(cmd, stks);
-    } else if (funrows[cmd].type == UNARY) {   // e l
-        call_unary(cmd, stks);
-    } else if (funrows[cmd].type == NONHIST) { //  ~ i c s r u
-        nonhistp = funrows[cmd].fun;
-        nonhistp(stks[I_STK]);
+    } else if (funrows[cmd].type < NONOP) { // BINARY, UNARY, NONHIST
+        callfun[funrows[cmd].type](cmd, stks);
     } else if (cmd == DISC) {     // d  not using a discard()
         transfer(stks[I_STK ], stks[H_NUMS]);
     } else if (cmd == HTOG) {
