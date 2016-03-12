@@ -22,18 +22,18 @@ static const double stack_shrinklimit     = 0.43; // shrink when 43% full
 // static const double stack_growfactor   = 2.0 ;
 
 // stack_create(sizeof(<your element type here>));
-extern stack_t *stack_create(size_t sz);
-extern void stack_destroy(stack_t *stk);
+stack_t *stack_create(size_t sz);
+void stack_destroy(stack_t *stk);
 
-extern size_t stack_elemsize(stack_t *stk); // probably no use
-extern size_t stack_size(stack_t *stk);
-extern int stack_empty(stack_t *stk);
+size_t stack_elemsize(stack_t *stk); // probably no use
+size_t stack_size(stack_t *stk);
+int stack_empty(stack_t *stk);
 
-extern void stack_push(void *itemp, stack_t *stk);
-extern void  stack_pop(void *itemp, stack_t *stk);
-extern void  stack_top(void *itemp, stack_t *stk);
-extern void stack_peek(void *itemp, size_t dataindex, stack_t *stk);
-extern void stack_roll(int direction, stack_t *stk);
+void stack_push(void *itemp, stack_t *stk);
+void  stack_pop(void *itemp, stack_t *stk);
+void  stack_top(void *itemp, stack_t *stk);
+void stack_peek(void *itemp, size_t dataindex, stack_t *stk);
+void stack_roll(int direction, stack_t *stk);
 
 #endif // RPNSTACK_H
 

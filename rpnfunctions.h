@@ -52,37 +52,37 @@ typedef enum token_e {
 
 
 static RPN_T (*binaryp)(RPN_T x, RPN_T y);
-extern RPN_T  mul(RPN_T x, RPN_T y);
-extern RPN_T  add(RPN_T x, RPN_T y);
-extern RPN_T powe(RPN_T x, RPN_T y); // the name pow() is taken
-extern RPN_T divi(RPN_T x, RPN_T y); // the name div() is taken
-extern RPN_T  sub(RPN_T x, RPN_T y);
-extern RPN_T root(RPN_T x, RPN_T y);
+RPN_T  mul(RPN_T x, RPN_T y);
+RPN_T  add(RPN_T x, RPN_T y);
+RPN_T powe(RPN_T x, RPN_T y); // the name pow() is taken
+RPN_T divi(RPN_T x, RPN_T y); // the name div() is taken
+RPN_T  sub(RPN_T x, RPN_T y);
+RPN_T root(RPN_T x, RPN_T y);
 
 static RPN_T (*unaryp)(RPN_T x);
-extern RPN_T logn(RPN_T x);
-extern RPN_T expe(RPN_T x);
+RPN_T logn(RPN_T x);
+RPN_T expe(RPN_T x);
 
 static void (*nonhistp)(stack_t *stk);
 // can undo neg and inve easily without H_NUMS, unlike logn, expe
-extern void  neg(stack_t *stk);
-extern void inve(stack_t *stk);
-extern void copy(stack_t *stk);
-extern void swap(stack_t *stk);
-extern void rold(stack_t *stk);
-extern void rolu(stack_t *stk);
+void  neg(stack_t *stk);
+void inve(stack_t *stk);
+void copy(stack_t *stk);
+void swap(stack_t *stk);
+void rold(stack_t *stk);
+void rolu(stack_t *stk);
 
-extern void noop(void);
+void noop(void);
 
 
 // harmonizing these "categories" with conditionals in vet_do()
-extern void binary(token_t cmd, stack_t *stks[]);
-extern void unary(token_t cmd, stack_t *stks[]);
-extern void nonhist(token_t cmd, stack_t *stks[]);
+void binary(token_t cmd, stack_t *stks[]);
+void unary(token_t cmd, stack_t *stks[]);
+void nonhist(token_t cmd, stack_t *stks[]);
 // more padding noops to complicate the program and make it longer
-extern void nonop(token_t cmd, stack_t *stks[]);
-extern void msg(token_t cmd, stack_t *stks[]);
-extern void other(token_t cmd, stack_t *stks[]);
+void nonop(token_t cmd, stack_t *stks[]);
+void msg(token_t cmd, stack_t *stks[]);
+void other(token_t cmd, stack_t *stks[]);
 
 // nonhist and nonop need better names. DISCARD would be its own type_t
 typedef enum {BINARY, UNARY, NONHIST, NONOP, OTHER, MSG} type_t;
@@ -111,7 +111,7 @@ static struct funrow {
     { 'l', logn, 1u, UNARY  , 1, JUNK, "log"            }, // LOGN
     { 'e', expe, 1u, UNARY  , 1, JUNK, "exp"            }, // EXPE
 
-    { '~', neg , 1u, NONHIST, 1, NEG , "negate"         }, //  NEG
+    { '~', neg , 1u, NONHIST, 1,  NEG, "negate"         }, //  NEG
     { 'i', inve, 1u, NONHIST, 1, INVE, "invert"         }, // INVE
     { 'c', copy, 1u, NONHIST, 1, JUNK, "copy"           }, // COPY
     { 's', swap, 2u, NONHIST, 1, SWAP, "swap"           }, // SWAP
@@ -161,24 +161,27 @@ static char *display_sep =
     "=========================================================================";
 static char *rpn_prompt = "#> ";
 
-extern void printmsg(token_t msgcode);
-extern void printmsg_fresh(token_t msgcode, token_t *last_msgp);
+void printmsg(token_t msgcode);
+void printmsg_fresh(token_t msgcode, token_t *last_msgp);
 // supress printing in batch mode
-extern void donot_printmsg(token_t msgcode);
-extern void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp);
-extern void (*p_printmsg)(token_t msgcode);
-extern void (*p_printmsg_fresh)(token_t msgcode, token_t *last_msgp);
+void donot_printmsg(token_t msgcode);
+void donot_printmsg_fresh(token_t msgcode, token_t *last_msgp);
+void (*p_printmsg)(token_t msgcode);
+void (*p_printmsg_fresh)(token_t msgcode, token_t *last_msgp);
 
-extern void dump_stack(stack_t *stack);
+void dump_stack(stack_t *stack);
 
-extern void display(int *hist_flagp, stack_t *stks[]);
+void display(int *hist_flagp, stack_t *stks[]);
 
 // indices for the rpn_stacks array
 // 0: interactive stack
 // 1: history nums and 2: history cmds are for restoring the interactive stack
 enum {I_STK, H_NUMS, H_CMDS};
 
-extern int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, stack_t *stks[]);
+int handle_input(int *hist_flagp,
+                 token_t *last_msgp,
+                 char *inputbuf,
+                 stack_t *stks[]);
 
 
 // ___ prototypes for when you write tests. not used in main ___________________
@@ -186,32 +189,32 @@ extern int handle_input(int *hist_flagp, token_t *last_msgp, char *inputbuf, sta
 # ifdef RPN_TEST
 
 // convenience, not for H_CMDS
-extern RPN_T pop(stack_t *stk);
-extern RPN_T top(stack_t *stk);
-extern void push(RPN_T item, stack_t *stk);
-extern RPN_T transfer(stack_t *src_stk, stack_t *dest_stk);
+RPN_T pop(stack_t *stk);
+RPN_T top(stack_t *stk);
+void push(RPN_T item, stack_t *stk);
+RPN_T transfer(stack_t *src_stk, stack_t *dest_stk);
 
-extern void display_stack(void (*print_item)(void*),
-                          void *itemp,
-                          size_t display_len,
-                          stack_t *stack);
+void display_stack(void (*print_item)(void*),
+                   void *itemp,
+                   size_t display_len,
+                   stack_t *stack);
 
-extern void display_history(stack_t *stks[]);
+void display_history(stack_t *stks[]);
 
-extern void print_num(void *itemp);
-extern void print_cmdname(void *itemp);
+void print_num(void *itemp);
+void print_cmdname(void *itemp);
 
-extern void toggle(int *flag);
+void toggle(int *flag);
 
-extern void undo(token_t *last_msgp, stack_t *stks[]);
-extern token_t math_error(void);
-extern void vet_do(int *hist_flagp,
-                   token_t *last_msgp,
-                   RPN_T inputnum,
-                   token_t cmd,
-                   stack_t *stks[]);
+void undo(token_t *last_msgp, stack_t *stks[]);
+token_t math_error(void);
+void vet_do(int *hist_flagp,
+            token_t *last_msgp,
+            RPN_T inputnum,
+            token_t cmd,
+            stack_t *stks[]);
 
-extern token_t tokenize(char *inputbuf, RPN_T *inputnum);
+token_t tokenize(char *inputbuf, RPN_T *inputnum);
 
 # endif // RPN_TEST
 #endif // RPNFUNCTIONS_H

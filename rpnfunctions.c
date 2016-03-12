@@ -125,9 +125,9 @@ void push(RPN_T item, stack_t *stk) {
 
 // moves _and_ returns the item. opposite arg order from memmove
 RPN_T transfer(stack_t *src_stk, stack_t *dest_stk) {
-    RPN_T tmp = pop(src_stk);
-    push(tmp, dest_stk);
-    return tmp;
+    RPN_T item = pop(src_stk);
+    push(item, dest_stk);
+    return item;
 }
 
 // ___ display, print __________________________________________________________
@@ -361,7 +361,6 @@ void binary(token_t cmd, stack_t *stks[]) {
     push(binaryp(nextnum, topnum), stks[I_STK ]); // arg order is important
 }
 
-
 void unary(token_t cmd, stack_t *stks[]) {
     RPN_T operand = transfer(stks[I_STK ], stks[H_NUMS]);
     unaryp = funrows[cmd].fun;
@@ -374,7 +373,7 @@ void nonhist(token_t cmd, stack_t *stks[]) {
     nonhistp(stks[I_STK]);
 }
 
-// filler
+// filler, one would be enough
 void nonop (token_t cmd, stack_t *stks[]) { return; }
 void other (token_t cmd, stack_t *stks[]) { return; }
 void msg   (token_t cmd, stack_t *stks[]) { return; }
