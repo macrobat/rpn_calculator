@@ -1,14 +1,16 @@
 #ifndef RPNFUNCTIONS_H
-#define RPNFUNCTIONS_H
-#include "rpnstack.h"
+# define RPNFUNCTIONS_H
+# include "rpnstack.h"
 
 // rpnfunctions.h
 // a reverse polish notation calculator
 
-#define RPN_T long double
-#define RPN_FMT "%.10Lg"
-#define RPN_ZERO 0.0L
-#define RPN_ONE  1.0L
+# ifndef RPN_T
+#  define RPN_T long double
+#  define RPN_FMT "%.10Lg"
+#  define RPN_ZERO 0.0L
+#  define RPN_ONE  1.0L
+# endif
 
 // subsets of these enums have different roles
 // aspects: tokens, messages, functions and their attributes

@@ -78,6 +78,8 @@ is_zero(). what can a long double zero look like? would be obviated by flex
 (not very important. false positives don't matter much here)
 0 preceded by [+-] fails to insert, interpreted as the operations [+-]
 
+a conf file to set token chars
+
 
 ___ example input _____________________________________
 
@@ -124,9 +126,9 @@ void push(RPN_T item, stack_t *stk) {
 }
 
 // moves _and_ returns the item. opposite arg order from memmove
-RPN_T transfer(stack_t *src_stk, stack_t *dest_stk) {
-    RPN_T item = pop(src_stk);
-    push(item, dest_stk);
+RPN_T transfer(stack_t *src, stack_t *dest) {
+    RPN_T item = pop(src);
+    push(item, dest);
     return item;
 }
 
@@ -460,9 +462,14 @@ int handle_input(int *hist_flagp,
     char *chp, *str;
     token_t tok = NUM;
     for (chp = inputbuf; tok != QUIT; chp = NULL) {
-        str = strtok(chp, " \t\n");
+        str = strtok(chp, " \t"); // not \n
         if (str == NULL) {
             break; // reached end of input
+        }
+        if (feof(stdin)) { // EOF, 2 Ctrl-D presses to abandon line
+            printf("\n");
+            clearerr(stdin);
+            break;
         }
         tok = tokenize(str, &inputnum);
         if (tok == UNDO) {
