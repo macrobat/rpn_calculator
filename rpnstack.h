@@ -9,19 +9,19 @@
 // allocated size of stk->data is stk->elemsz * stk->nelems
 // update shrinkwhen member when resizing. check it in the halffull function
 typedef struct {
-    void *data;
     size_t elemsz;
     size_t nelems;
     size_t index;
     size_t shrinkwhen;
+    void *data;
 } stack_t;
 
 // for hysteresis sake
-static const double stack_shrinklimit     = 0.43; // shrink when 43% full
+static const double stack_shrinklimit = 0.41; // shrink when 41% full
 // static const double stack_shrinkfactor = 0.5 ;
 // static const double stack_growfactor   = 2.0 ;
 
-// stack_create(sizeof(<your element type here>));
+// stack_create(sizeof(<element type>));
 stack_t *stack_create(size_t sz);
 void stack_destroy(stack_t *stk);
 
